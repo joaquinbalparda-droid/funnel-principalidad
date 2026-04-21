@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Funnel Campañas — Principalidad</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
+  <style>
+    :root {
+      --bg:#f0f2f5; --card:#fff; --header:#1a1a2e; --text:#1a1a2e;
+      --muted:#6b7280; --border:#e5e7eb; --radius:10px; --gap:14px;
+      --mjo:#3483FA; --ag:#e6b800; --fq:#00A650; --sz:#FF7733;
+    }
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);font-size:14px;}
+
+    /* HEADER */
+    .header{background:var(--header);color:#fff;padding:16px 24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;}
+    .header h1{font-size:18px;font-weight:700;}
+    .header-right{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+    .last-updated{font-size:12px;color:#aaa;}
+    .badge-live{background:#00A650;color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;}
+
+    /* CONTAINER */
+    .container{max-width:1400px;margin:0 auto;padding:var(--gap);}
+
+    /* TABS */
+    .tabs{display:flex;gap:8px;margin-bottom:var(--gap);flex-wrap:wrap;}
+    .tab{padding:8px 20px;border-radius:20px;border:2px solid var(--border);background:var(--card);cursor:pointer;font-weight:600;font-size:13px;color:var(--muted);transition:all .15s;}
+    .tab.active{border-color:#3483FA;background:#3483FA;color:#fff;}
+    .tab:hover:not(.active){border-color:#3483FA;color:#3483FA;}
+
+    /* TL FILTER */
+    .tl-bar{display:flex;gap:8px;margin-bottom:var(--gap);flex-wrap:wrap;align-items:center;}
+    .tl-label{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-right:4px;}
+    .tl-btn{padding:6px 16px;border-radius:16px;border:2px solid var(--border);background:var(--card);cursor:pointer;font-size:13px;font-weight:700;transition:all .15s;}
+    .tl-btn.all.active{background:var(--header);border-color:var(--header);color:#fff;}
+    .tl-btn.mjo{border-color:var(--mjo);color:var(--mjo);} .tl-btn.mjo.active{background:var(--mjo);color:#fff;}
+    .tl-btn.ag {border-color:var(--ag); color:var(--ag); } .tl-btn.ag.active {background:var(--ag); color:#fff;}
+    .tl-btn.fq {border-color:var(--fq); color:var(--fq); } .tl-btn.fq.active {background:var(--fq); color:#fff;}
+    .tl-btn.sz {border-color:var(--sz); color:var(--sz); } .tl-btn.sz.active {background:var(--sz); color:#fff;}
+
+    /* KPI */
+    .kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:var(--gap);margin-bottom:var(--gap);}
+    .kpi{background:var(--card);border-radius:var(--radius);padding:16px 20px;box-shadow:0 1px 3px rgba(0,0,0,.07);border-top:4px solid transparent;}
+    .kpi.leads{border-color:#3483FA;} .kpi.contact{border-color:#00A650;} .kpi.neg{border-color:#FF7733;} .kpi.conv{border-color:#8b5cf6;} .kpi.rech{border-color:#e53935;}
+    .kpi-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:4px;}
+    .kpi-value{font-size:28px;font-weight:800;color:var(--text);line-height:1;}
+    .kpi-pct{font-size:13px;color:var(--muted);margin-top:4px;}
+
+    /* CHARTS ROW */
+    .charts-row{display:grid;grid-template-columns:1fr 1fr;gap:var(--gap);margin-bottom:var(--gap);}
+    @media(max-width:900px){.charts-row{grid-template-columns:1fr;}}
+    .chart-card{background:var(--card);border-radius:var(--radius);padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.07);}
+    .chart-card h3{font-size:14px;font-weight:700;margin-bottom:16px;}
+    .chart-wrap{position:relative;height:260px;}
+
+    /* FUNNEL */
+    .funnel-stage{margin-bottom:10px;}
+    .funnel-row{display:flex;align-items:center;gap:10px;}
+    .funnel-name{width:135px;font-size:13px;font-weight:600;color:var(--muted);text-align:right;flex-shrink:0;}
+    .funnel-bar-wrap{flex:1;background:#f3f4f6;border-radius:6px;height:28px;overflow:hidden;}
+    .funnel-bar{height:100%;border-radius:6px;transition:width .4s;display:flex;align-items:center;padding-left:8px;min-width:2px;}
+    .funnel-bar span{font-size:12px;font-weight:700;color:#fff;white-space:nowrap;}
+    .funnel-count{width:55px;text-align:right;font-size:13px;font-weight:700;flex-shrink:0;}
+    .funnel-pct{width:52px;text-align:right;font-size:12px;color:var(--muted);flex-shrink:0;}
+
+    /* TL CARDS */
+    .tl-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:var(--gap);margin-bottom:var(--gap);}
+    .tl-card{background:var(--card);border-radius:var(--radius);padding:16px 20px;box-shadow:0 1px 3px rgba(0,0,0,.07);border-left:5px solid;}
+    .tl-card.mjo{border-color:var(--mjo);} .tl-card.ag{border-color:var(--ag);}
+    .tl-card.fq{border-color:var(--fq);} .tl-card.sz{border-color:var(--sz);}
+    .tl-card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+    .tl-card-name{font-size:16px;font-weight:800;}
+    .tl-card-badge{font-size:11px;background:#f3f4f6;padding:3px 10px;border-radius:12px;color:var(--muted);font-weight:600;}
+    .tl-mini-stat{display:flex;justify-content:space-between;margin-bottom:4px;font-size:12px;color:var(--muted);}
+    .tl-mini-stat b{color:var(--text);}
+    .mini-bar-wrap{background:#f3f4f6;border-radius:4px;height:6px;margin-bottom:8px;overflow:hidden;}
+    .mini-bar{height:6px;border-radius:4px;transition:width .4s;}
+
+    /* TABLE */
+    .table-card{background:var(--card);border-radius:var(--radius);padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.07);}
+    .table-card h3{font-size:14px;font-weight:700;margin-bottom:16px;}
+    .table-wrap{overflow-x:auto;}
+    table{width:100%;border-collapse:collapse;font-size:13px;}
+    th{padding:10px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);border-bottom:2px solid var(--border);cursor:pointer;white-space:nowrap;user-select:none;}
+    th:hover{color:var(--text);}
+    td{padding:10px 12px;border-bottom:1px solid var(--border);}
+    tr:last-child td{border-bottom:none;}
+    tr:hover td{background:#f9fafb;}
+    .tl-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle;}
+    .pill{display:inline-block;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:700;}
+    .pill.high{background:#d1fae5;color:#065f46;}
+    .pill.mid{background:#fef3c7;color:#92400e;}
+    .pill.low{background:#fee2e2;color:#991b1b;}
+
+    footer{text-align:center;padding:20px;font-size:12px;color:var(--muted);}
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div><h1>🎯 Funnel de Campañas — Principalidad</h1></div>
+  <div class="header-right">
+    <span class="last-updated" id="last-updated">Datos: Abril 2026</span>
+    <span class="badge-live">● BigQuery</span>
+  </div>
+</div>
+
+<div class="container">
+  <div class="tabs">
+    <button class="tab active" onclick="setTab('CALENTAMIENTO',this)">🔥 Calentamiento de Leads</button>
+    <button class="tab" onclick="setTab('PROMO CUOTAS',this)">💳 Promo Cuotas</button>
+    <button class="tab" onclick="setTab('TOTAL',this)">📋 Total Equipo</button>
+  </div>
+
+  <div class="tl-bar">
+    <span class="tl-label">Team Leader:</span>
+    <button class="tl-btn all active" onclick="setTL('all',this)">Todos</button>
+    <button class="tl-btn mjo" onclick="setTL('mjo',this)">MJO</button>
+    <button class="tl-btn ag"  onclick="setTL('ag',this)">AG</button>
+    <button class="tl-btn fq"  onclick="setTL('fq',this)">FQ</button>
+    <button class="tl-btn sz"  onclick="setTL('sz',this)">SZ</button>
+  </div>
+
+  <div class="kpi-row">
+    <div class="kpi leads">  <div class="kpi-label">Total Leads</div>   <div class="kpi-value" id="kv-leads">—</div>  <div class="kpi-pct" id="ks-leads"> </div></div>
+    <div class="kpi contact"><div class="kpi-label">Contactabilidad</div><div class="kpi-value" id="kv-cont">—</div>   <div class="kpi-pct" id="ks-cont"> </div></div>
+    <div class="kpi neg">    <div class="kpi-label">En Negociación</div> <div class="kpi-value" id="kv-neg">—</div>    <div class="kpi-pct" id="ks-neg"> </div></div>
+    <div class="kpi conv">   <div class="kpi-label">Convertidos</div>   <div class="kpi-value" id="kv-conv">—</div>   <div class="kpi-pct" id="ks-conv"> </div></div>
+    <div class="kpi rech">   <div class="kpi-label">Rechazados</div>    <div class="kpi-value" id="kv-rech">—</div>   <div class="kpi-pct" id="ks-rech"> </div></div>
+  </div>
+
+  <div class="charts-row">
+    <div class="chart-card">
+      <h3>📊 Funnel de Conversión</h3>
+      <div id="funnel-stages"></div>
+    </div>
+    <div class="chart-card">
+      <h3>📈 Conversión % por TL</h3>
+      <div class="chart-wrap"><canvas id="tl-chart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="tl-grid" id="tl-cards"></div>
+
+  <div class="table-card">
+    <h3>👥 Ranking por Asesor</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th onclick="sortBy('tl')">TL</th>
+          <th onclick="sortBy('name')">Asesor</th>
+          <th onclick="sortBy('leads')">Leads ↕</th>
+          <th onclick="sortBy('cont')">Contactados ↕</th>
+          <th onclick="sortBy('contPct')">Contactab.% ↕</th>
+          <th onclick="sortBy('neg')">En Neg. ↕</th>
+          <th onclick="sortBy('conv')">Convertidos ↕</th>
+          <th onclick="sortBy('convPct')">Conversión% ↕</th>
+          <th onclick="sortBy('rech')">Rechazados ↕</th>
+          <th onclick="sortBy('pend')">Pendientes ↕</th>
+        </tr></thead>
+        <tbody id="asesor-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<footer>Funnel Principalidad · MercadoPago · <span id="footer-date"></span> · Datos vía BigQuery</footer>
+
+<script>
+// ── DATA (BigQuery — Abril 2026) ─────────────────────────────
+const DATA = [
+  {"campana":"CALENTAMIENTO","tl":"ag","name":"Alejandro Diaz","leads":35,"cont":13,"conv":6,"pend":2,"neg":1,"rech":4},
+  {"campana":"CALENTAMIENTO","tl":"ag","name":"Analia Maisonnave","leads":27,"cont":18,"conv":0,"pend":3,"neg":1,"rech":18},
+  {"campana":"CALENTAMIENTO","tl":"ag","name":"Camila Coca","leads":35,"cont":32,"conv":2,"pend":8,"neg":8,"rech":11},
+  {"campana":"CALENTAMIENTO","tl":"ag","name":"Catalina Fernandez","leads":23,"cont":22,"conv":3,"pend":3,"neg":2,"rech":14},
+  {"campana":"CALENTAMIENTO","tl":"ag","name":"Diego Moreno","leads":37,"cont":16,"conv":3,"pend":5,"neg":0,"rech":7},
+  {"campana":"CALENTAMIENTO","tl":"ag","name":"Emanuel Dursi","leads":36,"cont":25,"conv":5,"pend":5,"neg":7,"rech":8},
+  {"campana":"CALENTAMIENTO","tl":"ag","name":"Federico Vitabile","leads":35,"cont":18,"conv":2,"pend":5,"neg":4,"rech":7},
+  {"campana":"CALENTAMIENTO","tl":"ag","name":"Giselda Allende","leads":35,"cont":24,"conv":3,"pend":0,"neg":1,"rech":12},
+  {"campana":"CALENTAMIENTO","tl":"ag","name":"Matias Mesiano","leads":28,"cont":13,"conv":2,"pend":6,"neg":0,"rech":5},
+  {"campana":"CALENTAMIENTO","tl":"fq","name":"Azul Pacioni","leads":32,"cont":31,"conv":3,"pend":2,"neg":0,"rech":24},
+  {"campana":"CALENTAMIENTO","tl":"fq","name":"Barbara Nuñez","leads":36,"cont":27,"conv":7,"pend":2,"neg":1,"rech":15},
+  {"campana":"CALENTAMIENTO","tl":"fq","name":"Diana Fraser","leads":27,"cont":16,"conv":1,"pend":3,"neg":0,"rech":9},
+  {"campana":"CALENTAMIENTO","tl":"fq","name":"Francelys Perez","leads":34,"cont":17,"conv":3,"pend":2,"neg":2,"rech":10},
+  {"campana":"CALENTAMIENTO","tl":"fq","name":"Joaquin Lescano","leads":30,"cont":22,"conv":1,"pend":2,"neg":3,"rech":14},
+  {"campana":"CALENTAMIENTO","tl":"fq","name":"Luciana Pisacco","leads":33,"cont":12,"conv":0,"pend":4,"neg":0,"rech":8},
+  {"campana":"CALENTAMIENTO","tl":"fq","name":"Micaela Marsuzi","leads":30,"cont":19,"conv":3,"pend":2,"neg":4,"rech":10},
+  {"campana":"CALENTAMIENTO","tl":"fq","name":"Sebastian Jansa","leads":35,"cont":26,"conv":5,"pend":4,"neg":4,"rech":14},
+  {"campana":"CALENTAMIENTO","tl":"mjo","name":"Agustin Diz","leads":37,"cont":17,"conv":0,"pend":3,"neg":3,"rech":11},
+  {"campana":"CALENTAMIENTO","tl":"mjo","name":"Carolina Delgado","leads":34,"cont":31,"conv":4,"pend":1,"neg":2,"rech":24},
+  {"campana":"CALENTAMIENTO","tl":"mjo","name":"Juan Cruz Rial","leads":36,"cont":22,"conv":3,"pend":8,"neg":1,"rech":10},
+  {"campana":"CALENTAMIENTO","tl":"mjo","name":"Julian Torres","leads":32,"cont":27,"conv":2,"pend":1,"neg":4,"rech":22},
+  {"campana":"CALENTAMIENTO","tl":"mjo","name":"Manuel Elizarraga","leads":36,"cont":25,"conv":2,"pend":4,"neg":3,"rech":16},
+  {"campana":"CALENTAMIENTO","tl":"mjo","name":"Mariana Gonzalez","leads":36,"cont":24,"conv":2,"pend":4,"neg":5,"rech":12},
+  {"campana":"CALENTAMIENTO","tl":"mjo","name":"Rocio Angueira","leads":29,"cont":17,"conv":1,"pend":4,"neg":4,"rech":5},
+  {"campana":"CALENTAMIENTO","tl":"mjo","name":"Soledad Maydana","leads":28,"cont":23,"conv":4,"pend":3,"neg":3,"rech":13},
+  {"campana":"CALENTAMIENTO","tl":"sz","name":"Cristina Hsieh","leads":1,"cont":1,"conv":0,"pend":1,"neg":0,"rech":0},
+  {"campana":"PROMO CUOTAS","tl":"ag","name":"Alejandro Diaz","leads":37,"cont":12,"conv":1,"pend":4,"neg":4,"rech":3},
+  {"campana":"PROMO CUOTAS","tl":"ag","name":"Analia Maisonnave","leads":47,"cont":25,"conv":1,"pend":8,"neg":1,"rech":7},
+  {"campana":"PROMO CUOTAS","tl":"ag","name":"Camila Coca","leads":35,"cont":12,"conv":1,"pend":4,"neg":3,"rech":3},
+  {"campana":"PROMO CUOTAS","tl":"ag","name":"Catalina Fernandez","leads":47,"cont":14,"conv":0,"pend":4,"neg":3,"rech":7},
+  {"campana":"PROMO CUOTAS","tl":"ag","name":"Diego Moreno","leads":32,"cont":19,"conv":1,"pend":9,"neg":1,"rech":8},
+  {"campana":"PROMO CUOTAS","tl":"ag","name":"Emanuel Dursi","leads":44,"cont":20,"conv":1,"pend":9,"neg":3,"rech":7},
+  {"campana":"PROMO CUOTAS","tl":"ag","name":"Federico Vitabile","leads":40,"cont":17,"conv":1,"pend":5,"neg":6,"rech":5},
+  {"campana":"PROMO CUOTAS","tl":"ag","name":"Giselda Allende","leads":44,"cont":21,"conv":1,"pend":2,"neg":4,"rech":5},
+  {"campana":"PROMO CUOTAS","tl":"ag","name":"Matias Mesiano","leads":40,"cont":11,"conv":3,"pend":5,"neg":0,"rech":3},
+  {"campana":"PROMO CUOTAS","tl":"fq","name":"Azul Pacioni","leads":45,"cont":24,"conv":1,"pend":9,"neg":3,"rech":9},
+  {"campana":"PROMO CUOTAS","tl":"fq","name":"Barbara Nuñez","leads":39,"cont":20,"conv":2,"pend":5,"neg":0,"rech":11},
+  {"campana":"PROMO CUOTAS","tl":"fq","name":"Diana Fraser","leads":39,"cont":11,"conv":0,"pend":1,"neg":3,"rech":5},
+  {"campana":"PROMO CUOTAS","tl":"fq","name":"Francelys Perez","leads":44,"cont":17,"conv":0,"pend":6,"neg":3,"rech":8},
+  {"campana":"PROMO CUOTAS","tl":"fq","name":"Joaquin Lescano","leads":52,"cont":19,"conv":1,"pend":4,"neg":1,"rech":9},
+  {"campana":"PROMO CUOTAS","tl":"fq","name":"Luciana Pisacco","leads":45,"cont":16,"conv":1,"pend":7,"neg":0,"rech":8},
+  {"campana":"PROMO CUOTAS","tl":"fq","name":"Micaela Marsuzi","leads":45,"cont":18,"conv":0,"pend":7,"neg":4,"rech":7},
+  {"campana":"PROMO CUOTAS","tl":"fq","name":"Sebastian Jansa","leads":46,"cont":23,"conv":2,"pend":9,"neg":3,"rech":9},
+  {"campana":"PROMO CUOTAS","tl":"mjo","name":"Agustin Diz","leads":36,"cont":26,"conv":5,"pend":10,"neg":6,"rech":5},
+  {"campana":"PROMO CUOTAS","tl":"mjo","name":"Carolina Delgado","leads":37,"cont":21,"conv":3,"pend":10,"neg":2,"rech":6},
+  {"campana":"PROMO CUOTAS","tl":"mjo","name":"Juan Cruz Rial","leads":42,"cont":33,"conv":4,"pend":9,"neg":15,"rech":5},
+  {"campana":"PROMO CUOTAS","tl":"mjo","name":"Julian Torres","leads":46,"cont":27,"conv":0,"pend":7,"neg":8,"rech":12},
+  {"campana":"PROMO CUOTAS","tl":"mjo","name":"Manuel Elizarraga","leads":36,"cont":26,"conv":3,"pend":8,"neg":7,"rech":8},
+  {"campana":"PROMO CUOTAS","tl":"mjo","name":"Mariana Gonzalez","leads":47,"cont":19,"conv":3,"pend":5,"neg":3,"rech":5},
+  {"campana":"PROMO CUOTAS","tl":"mjo","name":"Rocio Angueira","leads":43,"cont":16,"conv":1,"pend":6,"neg":6,"rech":3},
+  {"campana":"PROMO CUOTAS","tl":"mjo","name":"Soledad Maydana","leads":45,"cont":14,"conv":1,"pend":3,"neg":3,"rech":7},
+  {"campana":"PROMO CUOTAS","tl":"sz","name":"Cristina Hsieh","leads":9,"cont":5,"conv":0,"pend":1,"neg":0,"rech":4},
+  {"campana":"PROMO CUOTAS","tl":"sz","name":"Sofia Zhuang","leads":2,"cont":1,"conv":0,"pend":0,"neg":1,"rech":0},
+  {"campana":"TOTAL","tl":"ag","name":"Alejandro Diaz","leads":164,"cont":57,"conv":4,"pend":26,"neg":4,"rech":23},
+  {"campana":"TOTAL","tl":"ag","name":"Analia Maisonnave","leads":153,"cont":91,"conv":1,"pend":13,"neg":1,"rech":33},
+  {"campana":"TOTAL","tl":"ag","name":"Camila Coca","leads":160,"cont":43,"conv":3,"pend":21,"neg":8,"rech":10},
+  {"campana":"TOTAL","tl":"ag","name":"Catalina Fernandez","leads":148,"cont":45,"conv":4,"pend":14,"neg":3,"rech":24},
+  {"campana":"TOTAL","tl":"ag","name":"Diego Moreno","leads":163,"cont":55,"conv":5,"pend":24,"neg":2,"rech":22},
+  {"campana":"TOTAL","tl":"ag","name":"Emanuel Dursi","leads":155,"cont":37,"conv":3,"pend":10,"neg":7,"rech":17},
+  {"campana":"TOTAL","tl":"ag","name":"Federico Vitabile","leads":159,"cont":47,"conv":4,"pend":26,"neg":4,"rech":13},
+  {"campana":"TOTAL","tl":"ag","name":"Giselda Allende","leads":162,"cont":37,"conv":5,"pend":1,"neg":3,"rech":14},
+  {"campana":"TOTAL","tl":"ag","name":"Matias Mesiano","leads":154,"cont":49,"conv":6,"pend":19,"neg":3,"rech":20},
+  {"campana":"TOTAL","tl":"fq","name":"Azul Pacioni","leads":147,"cont":44,"conv":0,"pend":11,"neg":3,"rech":27},
+  {"campana":"TOTAL","tl":"fq","name":"Barbara Nuñez","leads":155,"cont":34,"conv":6,"pend":12,"neg":1,"rech":6},
+  {"campana":"TOTAL","tl":"fq","name":"Diana Fraser","leads":159,"cont":43,"conv":1,"pend":7,"neg":10,"rech":19},
+  {"campana":"TOTAL","tl":"fq","name":"Francelys Perez","leads":153,"cont":57,"conv":3,"pend":17,"neg":6,"rech":31},
+  {"campana":"TOTAL","tl":"fq","name":"Joaquin Lescano","leads":142,"cont":46,"conv":2,"pend":6,"neg":7,"rech":27},
+  {"campana":"TOTAL","tl":"fq","name":"Luciana Pisacco","leads":154,"cont":54,"conv":3,"pend":23,"neg":5,"rech":22},
+  {"campana":"TOTAL","tl":"fq","name":"Micaela Marsuzi","leads":150,"cont":46,"conv":2,"pend":10,"neg":5,"rech":30},
+  {"campana":"TOTAL","tl":"fq","name":"Sebastian Jansa","leads":154,"cont":32,"conv":10,"pend":15,"neg":3,"rech":4},
+  {"campana":"TOTAL","tl":"mjo","name":"Agustin Diz","leads":163,"cont":41,"conv":6,"pend":19,"neg":8,"rech":8},
+  {"campana":"TOTAL","tl":"mjo","name":"Carolina Delgado","leads":158,"cont":38,"conv":6,"pend":4,"neg":4,"rech":24},
+  {"campana":"TOTAL","tl":"mjo","name":"Juan Cruz Rial","leads":157,"cont":50,"conv":3,"pend":24,"neg":5,"rech":18},
+  {"campana":"TOTAL","tl":"mjo","name":"Julian Torres","leads":150,"cont":82,"conv":2,"pend":27,"neg":6,"rech":45},
+  {"campana":"TOTAL","tl":"mjo","name":"Manuel Elizarraga","leads":163,"cont":79,"conv":3,"pend":14,"neg":5,"rech":57},
+  {"campana":"TOTAL","tl":"mjo","name":"Mariana Gonzalez","leads":151,"cont":47,"conv":2,"pend":12,"neg":5,"rech":18},
+  {"campana":"TOTAL","tl":"mjo","name":"Rocio Angueira","leads":158,"cont":56,"conv":3,"pend":27,"neg":12,"rech":15},
+  {"campana":"TOTAL","tl":"mjo","name":"Soledad Maydana","leads":153,"cont":38,"conv":0,"pend":17,"neg":4,"rech":16},
+  {"campana":"TOTAL","tl":"sz","name":"Cristina Hsieh","leads":132,"cont":77,"conv":6,"pend":6,"neg":10,"rech":46},
+  {"campana":"TOTAL","tl":"sz","name":"Sofia Zhuang","leads":44,"cont":16,"conv":3,"pend":0,"neg":4,"rech":5}
+];
+
+const TL_COLOR = {mjo:'#3483FA',ag:'#e6b800',fq:'#00A650',sz:'#FF7733'};
+const TL_NAMES = {mjo:'MJO',ag:'AG',fq:'FQ',sz:'SZ'};
+
+let CUR_TAB = 'CALENTAMIENTO', CUR_TL = 'all';
+let sortCol = 'leads', sortDir = -1;
+let tlChart = null;
+
+// ── FILTER ────────────────────────────────────────────────
+function getRows() {
+  if (CUR_TAB === 'TOTAL') {
+    // Aggregate all 3 campanas per asesor to get true grand total
+    const map = {};
+    DATA.filter(r => CUR_TL === 'all' || r.tl === CUR_TL).forEach(r => {
+      if (!map[r.name]) map[r.name] = {campana:'TOTAL', tl:r.tl, name:r.name, leads:0, cont:0, conv:0, pend:0, neg:0, rech:0};
+      const a = map[r.name];
+      a.leads+=r.leads; a.cont+=r.cont; a.conv+=r.conv;
+      a.pend+=r.pend;   a.neg+=r.neg;   a.rech+=r.rech;
+    });
+    return Object.values(map);
+  }
+  return DATA.filter(r =>
+    r.campana === CUR_TAB &&
+    (CUR_TL === 'all' || r.tl === CUR_TL)
+  );
+}
+
+function compute(rows) {
+  return rows.reduce((a,r) => ({
+    leads: a.leads+r.leads, cont: a.cont+r.cont,
+    conv:  a.conv+r.conv,   pend: a.pend+r.pend,
+    neg:   a.neg+r.neg,     rech: a.rech+r.rech
+  }), {leads:0,cont:0,conv:0,pend:0,neg:0,rech:0});
+}
+
+function pct(n,d){ return d ? (n/d*100).toFixed(1)+'%' : '—'; }
+function fmtN(n){ return n>=1000?(n/1000).toFixed(1)+'K':String(n); }
+
+// ── RENDER ────────────────────────────────────────────────
+function rerender() {
+  const rows = getRows();
+  const m = compute(rows);
+  renderKPIs(m);
+  renderFunnel(m);
+  renderTLCards(rows);
+  renderTable(rows);
+  renderTLChart();
+}
+
+function renderKPIs(m) {
+  const set=(id,v,s)=>{document.getElementById('kv-'+id).textContent=v;document.getElementById('ks-'+id).textContent=s;};
+  set('leads', fmtN(m.leads),  m.leads+' leads');
+  set('cont',  pct(m.cont,m.leads), m.cont+' contactados');
+  set('neg',   fmtN(m.neg),    pct(m.neg,m.leads)+' del total');
+  set('conv',  fmtN(m.conv),   pct(m.conv,m.leads)+' conversión');
+  set('rech',  fmtN(m.rech),   pct(m.rech,m.leads)+' rechazo');
+}
+
+function renderFunnel(m) {
+  const stages = [
+    {name:'Total Leads',    val:m.leads, color:'#3483FA'},
+    {name:'Contactados',    val:m.cont,  color:'#00A650'},
+    {name:'En Negociación', val:m.neg,   color:'#FF7733'},
+    {name:'Convertidos',    val:m.conv,  color:'#8b5cf6'},
+    {name:'Rechazados',     val:m.rech,  color:'#e53935'},
+    {name:'Pendientes',     val:m.pend,  color:'#9ca3af'},
+  ];
+  const max = m.leads||1;
+  document.getElementById('funnel-stages').innerHTML = stages.map(s=>`
+    <div class="funnel-stage"><div class="funnel-row">
+      <div class="funnel-name">${s.name}</div>
+      <div class="funnel-bar-wrap">
+        <div class="funnel-bar" style="width:${(s.val/max*100).toFixed(1)}%;background:${s.color}">
+          <span>${s.val>0&&s.val/max>.07?s.val:''}</span>
+        </div>
+      </div>
+      <div class="funnel-count">${s.val}</div>
+      <div class="funnel-pct">${pct(s.val,max)}</div>
+    </div></div>`).join('');
+}
+
+function renderTLCards(rows) {
+  document.getElementById('tl-cards').innerHTML = ['mjo','ag','fq','sz'].map(tl => {
+    const r = rows.filter(x=>x.tl===tl);
+    if (!r.length) return '';
+    const m = compute(r);
+    const cp = m.leads?(m.cont/m.leads*100).toFixed(1):0;
+    const vp = m.leads?(m.conv/m.leads*100).toFixed(1):0;
+    return `<div class="tl-card ${tl}">
+      <div class="tl-card-header">
+        <span class="tl-card-name" style="color:${TL_COLOR[tl]}">${TL_NAMES[tl]}</span>
+        <span class="tl-card-badge">${m.leads} leads</span>
+      </div>
+      <div class="tl-mini-stat"><span>Contactabilidad</span><b>${cp}%</b></div>
+      <div class="mini-bar-wrap"><div class="mini-bar" style="width:${cp}%;background:${TL_COLOR[tl]}"></div></div>
+      <div class="tl-mini-stat"><span>Conversión</span><b>${vp}%</b></div>
+      <div class="mini-bar-wrap"><div class="mini-bar" style="width:${Math.min(vp,100)}%;background:${TL_COLOR[tl]}"></div></div>
+      <div class="tl-mini-stat"><span>Neg / Conv / Rech</span><b>${m.neg} / ${m.conv} / ${m.rech}</b></div>
+    </div>`;
+  }).join('');
+}
+
+function renderTable(rows) {
+  const data = rows.map(r=>({...r, contPct:r.leads?r.cont/r.leads*100:0, convPct:r.leads?r.conv/r.leads*100:0}));
+  data.sort((a,b)=>(a[sortCol]>b[sortCol]?1:-1)*sortDir);
+  document.getElementById('asesor-tbody').innerHTML = data.map(a=>{
+    const cls = a.convPct>=10?'high':a.convPct>=4?'mid':'low';
+    return `<tr>
+      <td><span class="tl-dot" style="background:${TL_COLOR[a.tl]||'#ccc'}"></span>${TL_NAMES[a.tl]||a.tl}</td>
+      <td><b>${a.name}</b></td>
+      <td>${a.leads}</td><td>${a.cont}</td>
+      <td>${a.contPct.toFixed(1)}%</td>
+      <td>${a.neg}</td><td>${a.conv}</td>
+      <td><span class="pill ${cls}">${a.convPct.toFixed(1)}%</span></td>
+      <td>${a.rech}</td><td>${a.pend}</td>
+    </tr>`;
+  }).join('');
+}
+
+function sortBy(col) {
+  sortDir = sortCol===col ? sortDir*-1 : -1;
+  sortCol = col;
+  rerender();
+}
+
+function renderTLChart() {
+  const tls = ['mjo','ag','fq','sz'];
+  const allRows = DATA.filter(r => r.campana === CUR_TAB);
+  const convData = tls.map(tl => {
+    const r = allRows.filter(x=>x.tl===tl);
+    const m = compute(r);
+    return m.leads ? +(m.conv/m.leads*100).toFixed(1) : 0;
+  });
+  const contData = tls.map(tl => {
+    const r = allRows.filter(x=>x.tl===tl);
+    const m = compute(r);
+    return m.leads ? +(m.cont/m.leads*100).toFixed(1) : 0;
+  });
+
+  const ctx = document.getElementById('tl-chart').getContext('2d');
+  if (tlChart) { tlChart.destroy(); }
+  tlChart = new Chart(ctx, {
+    type:'bar',
+    data:{
+      labels: tls.map(t=>TL_NAMES[t]),
+      datasets:[
+        {label:'Contactabilidad %', data:contData, backgroundColor:tls.map(t=>TL_COLOR[t]+'99'), borderColor:tls.map(t=>TL_COLOR[t]), borderWidth:2, borderRadius:4},
+        {label:'Conversión %',      data:convData, backgroundColor:tls.map(t=>TL_COLOR[t]),      borderColor:tls.map(t=>TL_COLOR[t]), borderWidth:2, borderRadius:4}
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{position:'top',labels:{usePointStyle:true,padding:16}},
+        tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.parsed.y}%`}}},
+      scales:{
+        x:{grid:{display:false}},
+        y:{beginAtZero:true, ticks:{callback:v=>v+'%'}, max:100}
+      }
+    }
+  });
+}
+
+// ── CONTROLS ──────────────────────────────────────────────
+function setTab(tab, el) {
+  CUR_TAB = tab;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  rerender();
+}
+function setTL(tl, el) {
+  CUR_TL = tl;
+  document.querySelectorAll('.tl-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  rerender();
+}
+
+// ── INIT ──────────────────────────────────────────────────
+document.getElementById('footer-date').textContent = new Date().toLocaleDateString('es-AR',{day:'2-digit',month:'long',year:'numeric'});
+rerender();
+</script>
+</body>
+</html>
