@@ -95,6 +95,17 @@
     .pill.low{background:#fee2e2;color:#991b1b;}
 
     footer{text-align:center;padding:20px;font-size:12px;color:var(--muted);}
+
+    /* TPV SECTION */
+    .tpv-section{margin-bottom:var(--gap);}
+    .tpv-section-title{font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:var(--gap);padding:4px 0;}
+    .kpi.tpv-total{border-color:#1a1a2e;}
+    .kpi.tpv-cal{border-color:#FF7733;}
+    .kpi.tpv-promo{border-color:#8b5cf6;}
+    .kpi.potenciados{border-color:#00A650;}
+    .tpv-table-card{background:var(--card);border-radius:var(--radius);padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.07);}
+    .tpv-table-card h3{font-size:14px;font-weight:700;margin-bottom:16px;}
+    .no-tpv{color:var(--muted);text-align:center;padding:24px;font-size:13px;}
   </style>
 </head>
 <body>
@@ -164,12 +175,43 @@
       </table>
     </div>
   </div>
+
+  <!-- TPV SECTION -->
+  <div class="tpv-section">
+    <div class="tpv-section-title">💰 TPV — Convertidos (M0 vs M-1)</div>
+    <div class="kpi-row">
+      <div class="kpi tpv-total">
+        <div class="kpi-label">TPV Total M0</div>
+        <div class="kpi-value" id="kv-tpv-total">—</div>
+        <div class="kpi-pct" id="ks-tpv-total"> </div>
+      </div>
+      <div class="kpi tpv-cal">
+        <div class="kpi-label">TPV Calentamiento</div>
+        <div class="kpi-value" id="kv-tpv-cal">—</div>
+        <div class="kpi-pct" id="ks-tpv-cal"> </div>
+      </div>
+      <div class="kpi tpv-promo">
+        <div class="kpi-label">TPV Promo Cuotas</div>
+        <div class="kpi-value" id="kv-tpv-promo">—</div>
+        <div class="kpi-pct" id="ks-tpv-promo"> </div>
+      </div>
+      <div class="kpi potenciados">
+        <div class="kpi-label">Potenciados</div>
+        <div class="kpi-value" id="kv-potenciados">—</div>
+        <div class="kpi-pct" id="ks-potenciados"> </div>
+      </div>
+    </div>
+    <div class="tpv-table-card" id="tpv-table-container">
+      <p class="no-tpv">Cargando datos de TPV...</p>
+    </div>
+  </div>
 </div>
 
 <footer>Funnel Principalidad · MercadoPago · <span id="footer-date"></span> · Datos vía BigQuery</footer>
 
 <script>
 // ── DATA (BigQuery — Abril 2026) ─────────────────────────────
+const TPV_DATA = [];
 const DATA = [{"campana":"CALENTAMIENTO","tl":"ag","name":"Alejandro Diaz","leads":35,"cont":13,"conv":6,"pend":2,"neg":1,"rech":4},{"campana":"CALENTAMIENTO","tl":"ag","name":"Analia Maisonnave","leads":27,"cont":18,"conv":0,"pend":3,"neg":1,"rech":18},{"campana":"CALENTAMIENTO","tl":"ag","name":"Camila Coca","leads":35,"cont":32,"conv":2,"pend":8,"neg":8,"rech":11},{"campana":"CALENTAMIENTO","tl":"ag","name":"Catalina Fernandez","leads":23,"cont":22,"conv":3,"pend":3,"neg":2,"rech":14},{"campana":"CALENTAMIENTO","tl":"ag","name":"Diego Moreno","leads":37,"cont":16,"conv":3,"pend":5,"neg":0,"rech":7},{"campana":"CALENTAMIENTO","tl":"ag","name":"Emanuel Dursi","leads":36,"cont":25,"conv":5,"pend":5,"neg":7,"rech":8},{"campana":"CALENTAMIENTO","tl":"ag","name":"Federico Vitabile","leads":35,"cont":18,"conv":2,"pend":5,"neg":4,"rech":7},{"campana":"CALENTAMIENTO","tl":"ag","name":"Giselda Allende","leads":35,"cont":24,"conv":3,"pend":0,"neg":1,"rech":12},{"campana":"CALENTAMIENTO","tl":"ag","name":"Matias Mesiano","leads":28,"cont":13,"conv":2,"pend":6,"neg":0,"rech":5},{"campana":"CALENTAMIENTO","tl":"fq","name":"Azul Pacioni","leads":32,"cont":31,"conv":3,"pend":2,"neg":0,"rech":24},{"campana":"CALENTAMIENTO","tl":"fq","name":"Barbara Nuñez","leads":36,"cont":27,"conv":7,"pend":2,"neg":1,"rech":15},{"campana":"CALENTAMIENTO","tl":"fq","name":"Diana Fraser","leads":27,"cont":16,"conv":1,"pend":3,"neg":0,"rech":9},{"campana":"CALENTAMIENTO","tl":"fq","name":"Francelys Perez","leads":34,"cont":17,"conv":3,"pend":2,"neg":2,"rech":10},{"campana":"CALENTAMIENTO","tl":"fq","name":"Joaquin Lescano","leads":30,"cont":22,"conv":1,"pend":2,"neg":3,"rech":14},{"campana":"CALENTAMIENTO","tl":"fq","name":"Luciana Pisacco","leads":33,"cont":12,"conv":0,"pend":4,"neg":0,"rech":8},{"campana":"CALENTAMIENTO","tl":"fq","name":"Micaela Marsuzi","leads":30,"cont":19,"conv":3,"pend":2,"neg":4,"rech":10},{"campana":"CALENTAMIENTO","tl":"fq","name":"Sebastian Jansa","leads":35,"cont":27,"conv":5,"pend":4,"neg":5,"rech":14},{"campana":"CALENTAMIENTO","tl":"mjo","name":"Agustin Diz","leads":37,"cont":17,"conv":0,"pend":3,"neg":3,"rech":11},{"campana":"CALENTAMIENTO","tl":"mjo","name":"Carolina Delgado","leads":34,"cont":31,"conv":4,"pend":1,"neg":2,"rech":24},{"campana":"CALENTAMIENTO","tl":"mjo","name":"Juan Cruz Rial","leads":36,"cont":22,"conv":3,"pend":8,"neg":1,"rech":10},{"campana":"CALENTAMIENTO","tl":"mjo","name":"Julian Torres","leads":32,"cont":27,"conv":2,"pend":1,"neg":4,"rech":22},{"campana":"CALENTAMIENTO","tl":"mjo","name":"Manuel Elizarraga","leads":36,"cont":25,"conv":2,"pend":4,"neg":3,"rech":16},{"campana":"CALENTAMIENTO","tl":"mjo","name":"Mariana Gonzalez","leads":36,"cont":25,"conv":3,"pend":4,"neg":4,"rech":13},{"campana":"CALENTAMIENTO","tl":"mjo","name":"Rocio Angueira","leads":29,"cont":17,"conv":1,"pend":4,"neg":4,"rech":5},{"campana":"CALENTAMIENTO","tl":"mjo","name":"Soledad Maydana","leads":28,"cont":24,"conv":4,"pend":2,"neg":3,"rech":15},{"campana":"CALENTAMIENTO","tl":"sz","name":"Cristina Hsieh","leads":1,"cont":1,"conv":0,"pend":1,"neg":0,"rech":0},{"campana":"PROMO CUOTAS","tl":"ag","name":"Alejandro Diaz","leads":37,"cont":12,"conv":1,"pend":4,"neg":4,"rech":3},{"campana":"PROMO CUOTAS","tl":"ag","name":"Analia Maisonnave","leads":47,"cont":25,"conv":1,"pend":8,"neg":1,"rech":7},{"campana":"PROMO CUOTAS","tl":"ag","name":"Camila Coca","leads":35,"cont":13,"conv":1,"pend":5,"neg":3,"rech":3},{"campana":"PROMO CUOTAS","tl":"ag","name":"Catalina Fernandez","leads":47,"cont":14,"conv":0,"pend":4,"neg":3,"rech":7},{"campana":"PROMO CUOTAS","tl":"ag","name":"Diego Moreno","leads":32,"cont":19,"conv":1,"pend":9,"neg":1,"rech":8},{"campana":"PROMO CUOTAS","tl":"ag","name":"Emanuel Dursi","leads":44,"cont":20,"conv":1,"pend":9,"neg":3,"rech":7},{"campana":"PROMO CUOTAS","tl":"ag","name":"Federico Vitabile","leads":40,"cont":17,"conv":1,"pend":5,"neg":6,"rech":5},{"campana":"PROMO CUOTAS","tl":"ag","name":"Giselda Allende","leads":44,"cont":21,"conv":1,"pend":2,"neg":4,"rech":5},{"campana":"PROMO CUOTAS","tl":"ag","name":"Matias Mesiano","leads":40,"cont":11,"conv":3,"pend":5,"neg":0,"rech":3},{"campana":"PROMO CUOTAS","tl":"fq","name":"Azul Pacioni","leads":45,"cont":24,"conv":1,"pend":9,"neg":3,"rech":9},{"campana":"PROMO CUOTAS","tl":"fq","name":"Barbara Nuñez","leads":39,"cont":20,"conv":2,"pend":5,"neg":0,"rech":11},{"campana":"PROMO CUOTAS","tl":"fq","name":"Diana Fraser","leads":39,"cont":11,"conv":0,"pend":1,"neg":3,"rech":5},{"campana":"PROMO CUOTAS","tl":"fq","name":"Francelys Perez","leads":44,"cont":17,"conv":0,"pend":6,"neg":3,"rech":8},{"campana":"PROMO CUOTAS","tl":"fq","name":"Joaquin Lescano","leads":52,"cont":19,"conv":1,"pend":4,"neg":1,"rech":9},{"campana":"PROMO CUOTAS","tl":"fq","name":"Luciana Pisacco","leads":45,"cont":16,"conv":1,"pend":7,"neg":0,"rech":8},{"campana":"PROMO CUOTAS","tl":"fq","name":"Micaela Marsuzi","leads":45,"cont":18,"conv":0,"pend":7,"neg":4,"rech":7},{"campana":"PROMO CUOTAS","tl":"fq","name":"Sebastian Jansa","leads":46,"cont":23,"conv":2,"pend":9,"neg":3,"rech":9},{"campana":"PROMO CUOTAS","tl":"mjo","name":"Agustin Diz","leads":36,"cont":26,"conv":5,"pend":10,"neg":6,"rech":5},{"campana":"PROMO CUOTAS","tl":"mjo","name":"Carolina Delgado","leads":37,"cont":22,"conv":3,"pend":10,"neg":2,"rech":7},{"campana":"PROMO CUOTAS","tl":"mjo","name":"Juan Cruz Rial","leads":42,"cont":33,"conv":4,"pend":9,"neg":15,"rech":5},{"campana":"PROMO CUOTAS","tl":"mjo","name":"Julian Torres","leads":46,"cont":27,"conv":0,"pend":7,"neg":8,"rech":12},{"campana":"PROMO CUOTAS","tl":"mjo","name":"Manuel Elizarraga","leads":36,"cont":26,"conv":3,"pend":8,"neg":7,"rech":8},{"campana":"PROMO CUOTAS","tl":"mjo","name":"Mariana Gonzalez","leads":47,"cont":19,"conv":3,"pend":5,"neg":4,"rech":5},{"campana":"PROMO CUOTAS","tl":"mjo","name":"Rocio Angueira","leads":43,"cont":16,"conv":1,"pend":6,"neg":6,"rech":3},{"campana":"PROMO CUOTAS","tl":"mjo","name":"Soledad Maydana","leads":45,"cont":14,"conv":2,"pend":3,"neg":3,"rech":6},{"campana":"PROMO CUOTAS","tl":"sz","name":"Cristina Hsieh","leads":9,"cont":5,"conv":0,"pend":1,"neg":0,"rech":4},{"campana":"PROMO CUOTAS","tl":"sz","name":"Sofia Zhuang","leads":2,"cont":1,"conv":0,"pend":0,"neg":1,"rech":0},{"campana":"TOTAL","tl":"ag","name":"Alejandro Diaz","leads":164,"cont":57,"conv":4,"pend":26,"neg":4,"rech":23},{"campana":"TOTAL","tl":"ag","name":"Analia Maisonnave","leads":153,"cont":91,"conv":1,"pend":13,"neg":1,"rech":33},{"campana":"TOTAL","tl":"ag","name":"Camila Coca","leads":160,"cont":43,"conv":3,"pend":21,"neg":8,"rech":10},{"campana":"TOTAL","tl":"ag","name":"Catalina Fernandez","leads":148,"cont":45,"conv":4,"pend":14,"neg":3,"rech":24},{"campana":"TOTAL","tl":"ag","name":"Diego Moreno","leads":163,"cont":55,"conv":5,"pend":24,"neg":2,"rech":22},{"campana":"TOTAL","tl":"ag","name":"Emanuel Dursi","leads":155,"cont":37,"conv":3,"pend":10,"neg":7,"rech":17},{"campana":"TOTAL","tl":"ag","name":"Federico Vitabile","leads":159,"cont":47,"conv":4,"pend":26,"neg":4,"rech":13},{"campana":"TOTAL","tl":"ag","name":"Giselda Allende","leads":162,"cont":37,"conv":5,"pend":1,"neg":3,"rech":14},{"campana":"TOTAL","tl":"ag","name":"Matias Mesiano","leads":154,"cont":49,"conv":6,"pend":19,"neg":3,"rech":20},{"campana":"TOTAL","tl":"fq","name":"Azul Pacioni","leads":147,"cont":44,"conv":0,"pend":11,"neg":3,"rech":27},{"campana":"TOTAL","tl":"fq","name":"Barbara Nuñez","leads":155,"cont":34,"conv":6,"pend":12,"neg":1,"rech":6},{"campana":"TOTAL","tl":"fq","name":"Diana Fraser","leads":159,"cont":43,"conv":1,"pend":7,"neg":10,"rech":19},{"campana":"TOTAL","tl":"fq","name":"Francelys Perez","leads":153,"cont":57,"conv":3,"pend":17,"neg":6,"rech":31},{"campana":"TOTAL","tl":"fq","name":"Joaquin Lescano","leads":142,"cont":46,"conv":2,"pend":6,"neg":7,"rech":27},{"campana":"TOTAL","tl":"fq","name":"Luciana Pisacco","leads":154,"cont":54,"conv":3,"pend":23,"neg":5,"rech":22},{"campana":"TOTAL","tl":"fq","name":"Micaela Marsuzi","leads":150,"cont":46,"conv":2,"pend":10,"neg":5,"rech":30},{"campana":"TOTAL","tl":"fq","name":"Sebastian Jansa","leads":154,"cont":32,"conv":10,"pend":15,"neg":3,"rech":4},{"campana":"TOTAL","tl":"mjo","name":"Agustin Diz","leads":163,"cont":41,"conv":6,"pend":19,"neg":8,"rech":8},{"campana":"TOTAL","tl":"mjo","name":"Carolina Delgado","leads":158,"cont":38,"conv":6,"pend":4,"neg":4,"rech":24},{"campana":"TOTAL","tl":"mjo","name":"Juan Cruz Rial","leads":157,"cont":50,"conv":3,"pend":24,"neg":5,"rech":18},{"campana":"TOTAL","tl":"mjo","name":"Julian Torres","leads":150,"cont":82,"conv":2,"pend":27,"neg":6,"rech":45},{"campana":"TOTAL","tl":"mjo","name":"Manuel Elizarraga","leads":163,"cont":79,"conv":3,"pend":14,"neg":5,"rech":57},{"campana":"TOTAL","tl":"mjo","name":"Mariana Gonzalez","leads":151,"cont":47,"conv":2,"pend":12,"neg":5,"rech":18},{"campana":"TOTAL","tl":"mjo","name":"Rocio Angueira","leads":158,"cont":56,"conv":3,"pend":27,"neg":12,"rech":15},{"campana":"TOTAL","tl":"mjo","name":"Soledad Maydana","leads":153,"cont":38,"conv":0,"pend":16,"neg":5,"rech":16},{"campana":"TOTAL","tl":"sz","name":"Cristina Hsieh","leads":132,"cont":77,"conv":6,"pend":6,"neg":10,"rech":46},{"campana":"TOTAL","tl":"sz","name":"Sofia Zhuang","leads":44,"cont":16,"conv":3,"pend":0,"neg":4,"rech":5}];
 
 const TL_COLOR = {mjo:'#3483FA',ag:'#e6b800',fq:'#00A650',sz:'#FF7733'};
@@ -218,6 +260,7 @@ function rerender() {
   renderTLCards(rows);
   renderTable(rows);
   renderTLChart();
+  if (typeof renderTPV === 'function') renderTPV();
 }
 
 function renderKPIs(m) {
@@ -347,9 +390,101 @@ function setTL(tl, el) {
   rerender();
 }
 
+// ── TPV HELPERS ───────────────────────────────────────────
+function fmtARS(n) {
+  if (!n || n === 0) return '$0';
+  if (n >= 1e9) return '$' + (n/1e9).toFixed(1) + 'MM';
+  if (n >= 1e6) return '$' + (n/1e6).toFixed(1) + 'M';
+  if (n >= 1e3) return '$' + (n/1e3).toFixed(0) + 'K';
+  return '$' + n.toFixed(0);
+}
+
+function renderTPV() {
+  const calRows   = TPV_DATA.filter(r => r.campana === 'CALENTAMIENTO' && (CUR_TL === 'all' || r.tl === CUR_TL));
+  const promoRows = TPV_DATA.filter(r => r.campana === 'PROMO CUOTAS'  && (CUR_TL === 'all' || r.tl === CUR_TL));
+
+  const sum = (arr, field) => arr.reduce((s, r) => s + (r[field] || 0), 0);
+
+  const calM0    = sum(calRows,   'tpv_m0');
+  const promoM0  = sum(promoRows, 'tpv_m0');
+  const calPot   = sum(calRows,   'pot');
+  const promoPot = sum(promoRows, 'pot');
+  const calConv  = sum(calRows,   'conv');
+  const promoConv= sum(promoRows, 'conv');
+
+  document.getElementById('kv-tpv-total').textContent   = fmtARS(calM0 + promoM0);
+  document.getElementById('ks-tpv-total').textContent   = 'Calent. + Promo Cuotas';
+  document.getElementById('kv-tpv-cal').textContent     = fmtARS(calM0);
+  document.getElementById('ks-tpv-cal').textContent     = calConv + ' convertidos';
+  document.getElementById('kv-tpv-promo').textContent   = fmtARS(promoM0);
+  document.getElementById('ks-tpv-promo').textContent   = promoConv + ' convertidos';
+  document.getElementById('kv-potenciados').textContent = (calPot + promoPot);
+  document.getElementById('ks-potenciados').textContent = 'TPV > $2M y +30% vs M‑1';
+
+  // Table — show rows for current tab filter
+  let tableRows;
+  if (CUR_TAB === 'TOTAL') {
+    // Aggregate per asesor across all campaigns
+    const map = {};
+    TPV_DATA.filter(r => CUR_TL === 'all' || r.tl === CUR_TL).forEach(r => {
+      if (!map[r.name]) map[r.name] = {campana:'TOTAL', tl:r.tl, name:r.name, conv:0, tpv_m1:0, tpv_m0:0, pot:0};
+      const a = map[r.name];
+      a.conv += r.conv; a.tpv_m1 += r.tpv_m1; a.tpv_m0 += r.tpv_m0; a.pot += r.pot;
+    });
+    tableRows = Object.values(map);
+  } else {
+    tableRows = TPV_DATA.filter(r =>
+      r.campana === CUR_TAB && (CUR_TL === 'all' || r.tl === CUR_TL)
+    );
+  }
+
+  const container = document.getElementById('tpv-table-container');
+  if (!TPV_DATA.length) {
+    container.innerHTML = '<p class="no-tpv">Sin datos de TPV disponibles aún. Se cargarán en la próxima actualización automática.</p>';
+    return;
+  }
+  if (!tableRows.length) {
+    container.innerHTML = '<p class="no-tpv">Sin datos de TPV para esta selección.</p>';
+    return;
+  }
+
+  const sorted = [...tableRows].sort((a, b) => (b.tpv_m0 || 0) - (a.tpv_m0 || 0));
+  container.innerHTML = `
+    <h3>💰 TPV por Asesor — M0 vs M‑1</h3>
+    <div class="table-wrap"><table>
+      <thead><tr>
+        <th>TL</th>
+        <th>Asesor</th>
+        <th>Campaña</th>
+        <th>Conv.</th>
+        <th>TPV M‑1</th>
+        <th>TPV M0</th>
+        <th>Δ vs M‑1</th>
+        <th>Potenciados</th>
+      </tr></thead>
+      <tbody>${sorted.map(r => {
+        const delta = r.tpv_m1 > 0 ? ((r.tpv_m0 - r.tpv_m1) / r.tpv_m1 * 100) : null;
+        const deltaStr   = delta !== null ? (delta >= 0 ? '+' : '') + delta.toFixed(1) + '%' : '—';
+        const deltaColor = delta !== null ? (delta >= 30 ? '#00A650' : delta >= 0 ? '#FF7733' : '#e53935') : 'inherit';
+        return `<tr>
+          <td><span class="tl-dot" style="background:${TL_COLOR[r.tl]||'#ccc'}"></span>${TL_NAMES[r.tl]||r.tl}</td>
+          <td><b>${r.name}</b></td>
+          <td>${r.campana}</td>
+          <td>${r.conv}</td>
+          <td>${fmtARS(r.tpv_m1 || 0)}</td>
+          <td><b>${fmtARS(r.tpv_m0 || 0)}</b></td>
+          <td style="color:${deltaColor};font-weight:700">${deltaStr}</td>
+          <td>${r.pot > 0 ? '<span class="pill high">'+r.pot+'</span>' : '0'}</td>
+        </tr>`;
+      }).join('')}
+      </tbody>
+    </table></div>`;
+}
+
 // ── INIT ──────────────────────────────────────────────────
-document.getElementById('footer-date').textContent = new Date().toLocaleDateString('es-AR',{day:'2-digit',month:'long',year:'numeric'});
+document.getElementById('footer-date').textContent = new Date().toLocaleDateString('es-AR', {day:'2-digit',month:'2-digit',year:'numeric'});
 rerender();
+renderTPV();
 </script>
 </body>
 </html>
