@@ -167,7 +167,7 @@
           <th onclick="sortBy('contPct')">Contactab.% ↕</th>
           <th onclick="sortBy('neg')">En Neg. ↕</th>
           <th onclick="sortBy('conv')">Convertidos ↕</th>
-          <th onclick="sortBy('convPct')">Conversión% ↕</th>
+          <th onclick="sortBy('convPct')">Conv/Cont% ↕</th>
           <th onclick="sortBy('rech')">Rechazados ↕</th>
           <th onclick="sortBy('pend')">Pendientes ↕</th>
         </tr></thead>
@@ -268,7 +268,7 @@ function renderKPIs(m) {
   set('leads', fmtN(m.leads),  m.leads+' leads');
   set('cont',  pct(m.cont,m.leads), m.cont+' contactados');
   set('neg',   fmtN(m.neg),    pct(m.neg,m.leads)+' del total');
-  set('conv',  fmtN(m.conv),   pct(m.conv,m.leads)+' conversión');
+  set('conv',  fmtN(m.conv),   pct(m.conv,m.cont)+' de contactados');
   set('rech',  fmtN(m.rech),   pct(m.rech,m.leads)+' rechazo');
 }
 
@@ -301,7 +301,7 @@ function renderTLCards(rows) {
     if (!r.length) return '';
     const m = compute(r);
     const cp = m.leads?(m.cont/m.leads*100).toFixed(1):0;
-    const vp = m.leads?(m.conv/m.leads*100).toFixed(1):0;
+    const vp = m.cont?(m.conv/m.cont*100).toFixed(1):0;
     return `<div class="tl-card ${tl}">
       <div class="tl-card-header">
         <span class="tl-card-name" style="color:${TL_COLOR[tl]}">${TL_NAMES[tl]}</span>
@@ -317,7 +317,7 @@ function renderTLCards(rows) {
 }
 
 function renderTable(rows) {
-  const data = rows.map(r=>({...r, contPct:r.leads?r.cont/r.leads*100:0, convPct:r.leads?r.conv/r.leads*100:0}));
+  const data = rows.map(r=>({...r, contPct:r.leads?r.cont/r.leads*100:0, convPct:r.cont?r.conv/r.cont*100:0}));
   data.sort((a,b)=>(a[sortCol]>b[sortCol]?1:-1)*sortDir);
   document.getElementById('asesor-tbody').innerHTML = data.map(a=>{
     const cls = a.convPct>=10?'high':a.convPct>=4?'mid':'low';
@@ -345,7 +345,7 @@ function renderTLChart() {
   const convData = tls.map(tl => {
     const r = allRows.filter(x=>x.tl===tl);
     const m = compute(r);
-    return m.leads ? +(m.conv/m.leads*100).toFixed(1) : 0;
+    return m.cont ? +(m.conv/m.cont*100).toFixed(1) : 0;
   });
   const contData = tls.map(tl => {
     const r = allRows.filter(x=>x.tl===tl);
