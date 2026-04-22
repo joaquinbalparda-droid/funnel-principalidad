@@ -405,41 +405,27 @@ function renderTPV() {
 
   const sum = (arr, field) => arr.reduce((s, r) => s + (r[field] || 0), 0);
 
-  const calM0    = sum(calRows,   'tpv_m0');
-  const promoM0  = sum(promoRows, 'tpv_m0');
-  const calM0p   = sum(calRows,   'tpv_m0p');
-  const promoM0p = sum(promoRows, 'tpv_m0p');
-  const calM1    = sum(calRows,   'tpv_m1');
-  const promoM1  = sum(promoRows, 'tpv_m1');
-  const calPot   = sum(calRows,   'pot');
-  const promoPot = sum(promoRows, 'pot');
-  const totalConv = sum(calRows, 'conv') + sum(promoRows, 'conv');
+  const totalRows = TPV_DATA.filter(r => CUR_TL === 'all' || r.tl === CUR_TL);
 
-  document.getElementById('kv-tpv-total').textContent   = fmtARS(calM0 + promoM0);
+  const totalM0   = sum(totalRows, 'tpv_m0');
+  const totalM0p  = sum(totalRows, 'tpv_m0p');
+  const totalM1   = sum(totalRows, 'tpv_m1');
+  const totalPot  = sum(totalRows, 'pot');
+  const totalConv = sum(totalRows, 'conv');
+
+  document.getElementById('kv-tpv-total').textContent   = fmtARS(totalM0);
   document.getElementById('ks-tpv-total').textContent   = totalConv + ' convertidos';
-  document.getElementById('kv-tpv-proy').textContent    = fmtARS(calM0p + promoM0p);
+  document.getElementById('kv-tpv-proy').textContent    = fmtARS(totalM0p);
   document.getElementById('ks-tpv-proy').textContent    = 'estimado fin de mes';
-  document.getElementById('kv-tpv-m1').textContent      = fmtARS(calM1 + promoM1);
+  document.getElementById('kv-tpv-m1').textContent      = fmtARS(totalM1);
   document.getElementById('ks-tpv-m1').textContent      = 'mes anterior';
-  document.getElementById('kv-potenciados').textContent = (calPot + promoPot);
+  document.getElementById('kv-potenciados').textContent = totalPot;
   document.getElementById('ks-potenciados').textContent = 'TPV proy. > $2M y +30% vs M‑1';
 
   // Table — show rows for current tab filter
   let tableRows;
-  if (CUR_TAB === 'TOTAL') {
-    // Aggregate per asesor across all campaigns
-    const map = {};
-    TPV_DATA.filter(r => CUR_TL === 'all' || r.tl === CUR_TL).forEach(r => {
-      if (!map[r.name]) map[r.name] = {campana:'TOTAL', tl:r.tl, name:r.name, conv:0, tpv_m1:0, tpv_m0:0, pot:0};
-      const a = map[r.name];
-      a.conv += r.conv; a.tpv_m1 += r.tpv_m1; a.tpv_m0 += r.tpv_m0; a.pot += r.pot;
-    });
-    tableRows = Object.values(map);
-  } else {
-    tableRows = TPV_DATA.filter(r =>
-      r.campana === CUR_TAB && (CUR_TL === 'all' || r.tl === CUR_TL)
-    );
-  }
+  // Siempre mostrar todas las campañas filtradas por TL
+  tableRows = TPV_DATA.filter(r => CUR_TL === 'all' || r.tl === CUR_TL);
 
   const container = document.getElementById('tpv-table-container');
   if (!TPV_DATA.length) {
