@@ -96,16 +96,17 @@
 
     footer{text-align:center;padding:20px;font-size:12px;color:var(--muted);}
 
-    /* TPV SECTION */
-    .tpv-section{margin-bottom:var(--gap);}
-    .tpv-section-title{font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:var(--gap);padding:4px 0;}
-    .kpi.tpv-total{border-color:#1a1a2e;}
-    .kpi.tpv-cal{border-color:#FF7733;}
-    .kpi.tpv-promo{border-color:#8b5cf6;}
+    /* TPV TOP STRIP */
+    .tpv-top{display:grid;grid-template-columns:1fr 1fr;gap:var(--gap);margin-bottom:var(--gap);}
     .kpi.potenciados{border-color:#00A650;}
-    .tpv-table-card{background:var(--card);border-radius:var(--radius);padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.07);}
-    .tpv-table-card h3{font-size:14px;font-weight:700;margin-bottom:16px;}
-    .no-tpv{color:var(--muted);text-align:center;padding:24px;font-size:13px;}
+    .kpi.tpv-inc{border-color:#8b5cf6;}
+
+    /* PROMO SUB-FILTER */
+    .sub-bar{display:none;gap:8px;margin-bottom:var(--gap);flex-wrap:wrap;align-items:center;}
+    .sub-bar.visible{display:flex;}
+    .sub-label{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-right:4px;}
+    .sub-btn{padding:5px 14px;border-radius:14px;border:2px solid var(--border);background:var(--card);cursor:pointer;font-size:12px;font-weight:600;color:var(--muted);transition:all .15s;}
+    .sub-btn.active{border-color:#8b5cf6;background:#8b5cf6;color:#fff;}
   </style>
 </head>
 <body>
@@ -119,10 +120,33 @@
 </div>
 
 <div class="container">
+  <!-- TPV TOP: solo potenciados e incremental -->
+  <div class="tpv-top">
+    <div class="kpi potenciados">
+      <div class="kpi-label">⭐ Potenciados M0</div>
+      <div class="kpi-value" id="kv-potenciados">—</div>
+      <div class="kpi-pct" id="ks-potenciados">TPV proy. &gt; $2M y +30% vs M‑1</div>
+    </div>
+    <div class="kpi tpv-inc">
+      <div class="kpi-label">📈 TPV Incremental Potenciados</div>
+      <div class="kpi-value" id="kv-tpv-inc">—</div>
+      <div class="kpi-pct" id="ks-tpv-inc">TPV M0 proy. − TPV M‑1</div>
+    </div>
+  </div>
+
   <div class="tabs">
     <button class="tab active" onclick="setTab('CALENTAMIENTO',this)">🔥 Calentamiento de Leads</button>
     <button class="tab" onclick="setTab('PROMO CUOTAS',this)">💳 Promo Cuotas</button>
     <button class="tab" onclick="setTab('TOTAL',this)">📋 Total Equipo</button>
+  </div>
+
+  <!-- Sub-filtro Promo Cuotas -->
+  <div class="sub-bar" id="sub-bar">
+    <span class="sub-label">Estado:</span>
+    <button class="sub-btn active" onclick="setSub(null,this)">Todos</button>
+    <button class="sub-btn" onclick="setSub('DISPONIBLE',this)">📋 Disponible</button>
+    <button class="sub-btn" onclick="setSub('PIDIÓ ASESOR',this)">📞 Pidió Asesor</button>
+    <button class="sub-btn" onclick="setSub('YA ACTIVÓ',this)">✅ Ya Activó</button>
   </div>
 
   <div class="tl-bar">
@@ -176,35 +200,6 @@
     </div>
   </div>
 
-  <!-- TPV SECTION -->
-  <div class="tpv-section">
-    <div class="tpv-section-title">💰 TPV — Convertidos (M0 vs M-1)</div>
-    <div class="kpi-row">
-      <div class="kpi tpv-total">
-        <div class="kpi-label">TPV Real M0</div>
-        <div class="kpi-value" id="kv-tpv-total">—</div>
-        <div class="kpi-pct" id="ks-tpv-total"> </div>
-      </div>
-      <div class="kpi tpv-cal">
-        <div class="kpi-label">TPV Proyectado M0</div>
-        <div class="kpi-value" id="kv-tpv-proy">—</div>
-        <div class="kpi-pct" id="ks-tpv-proy"> </div>
-      </div>
-      <div class="kpi tpv-promo">
-        <div class="kpi-label">TPV M‑1 (baseline)</div>
-        <div class="kpi-value" id="kv-tpv-m1">—</div>
-        <div class="kpi-pct" id="ks-tpv-m1"> </div>
-      </div>
-      <div class="kpi potenciados">
-        <div class="kpi-label">Potenciados</div>
-        <div class="kpi-value" id="kv-potenciados">—</div>
-        <div class="kpi-pct" id="ks-potenciados"> </div>
-      </div>
-    </div>
-    <div class="tpv-table-card" id="tpv-table-container">
-      <p class="no-tpv">Cargando datos de TPV...</p>
-    </div>
-  </div>
 </div>
 
 <footer>Funnel Principalidad · MercadoPago · <span id="footer-date"></span> · Datos vía BigQuery</footer>
@@ -217,14 +212,13 @@ const DATA = [{"campana":"CALENTAMIENTO","tl":"ag","name":"Alejandro Diaz","lead
 const TL_COLOR = {mjo:'#3483FA',ag:'#e6b800',fq:'#00A650',sz:'#FF7733'};
 const TL_NAMES = {mjo:'MJO',ag:'AG',fq:'FQ',sz:'SZ'};
 
-let CUR_TAB = 'CALENTAMIENTO', CUR_TL = 'all';
+let CUR_TAB = 'CALENTAMIENTO', CUR_TL = 'all', CUR_SUB = null;
 let sortCol = 'leads', sortDir = -1;
 let tlChart = null;
 
 // ── FILTER ────────────────────────────────────────────────
 function getRows() {
   if (CUR_TAB === 'TOTAL') {
-    // Aggregate all 3 campanas per asesor to get true grand total
     const map = {};
     DATA.filter(r => CUR_TL === 'all' || r.tl === CUR_TL).forEach(r => {
       if (!map[r.name]) map[r.name] = {campana:'TOTAL', tl:r.tl, name:r.name, leads:0, cont:0, conv:0, pend:0, neg:0, rech:0};
@@ -236,7 +230,8 @@ function getRows() {
   }
   return DATA.filter(r =>
     r.campana === CUR_TAB &&
-    (CUR_TL === 'all' || r.tl === CUR_TL)
+    (CUR_TL === 'all' || r.tl === CUR_TL) &&
+    (CUR_SUB === null || r.sub === CUR_SUB)
   );
 }
 
@@ -379,13 +374,30 @@ function renderTLChart() {
 // ── CONTROLS ──────────────────────────────────────────────
 function setTab(tab, el) {
   CUR_TAB = tab;
+  CUR_SUB = null;
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
+  // Mostrar sub-filtro solo en Promo Cuotas
+  const subBar = document.getElementById('sub-bar');
+  if (tab === 'PROMO CUOTAS') {
+    subBar.classList.add('visible');
+    // Resetear botones sub
+    document.querySelectorAll('.sub-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelector('.sub-btn').classList.add('active');
+  } else {
+    subBar.classList.remove('visible');
+  }
   rerender();
 }
 function setTL(tl, el) {
   CUR_TL = tl;
   document.querySelectorAll('.tl-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  rerender();
+}
+function setSub(sub, el) {
+  CUR_SUB = sub;
+  document.querySelectorAll('.sub-btn').forEach(b=>b.classList.remove('active'));
   el.classList.add('active');
   rerender();
 }
@@ -400,76 +412,10 @@ function fmtARS(n) {
 }
 
 function renderTPV() {
-  const calRows   = TPV_DATA.filter(r => r.campana === 'CALENTAMIENTO' && (CUR_TL === 'all' || r.tl === CUR_TL));
-  const promoRows = TPV_DATA.filter(r => r.campana === 'PROMO CUOTAS'  && (CUR_TL === 'all' || r.tl === CUR_TL));
-
-  const sum = (arr, field) => arr.reduce((s, r) => s + (r[field] || 0), 0);
-
-  const totalRows = TPV_DATA.filter(r => CUR_TL === 'all' || r.tl === CUR_TL);
-
-  const totalM0   = sum(totalRows, 'tpv_m0');
-  const totalM0p  = sum(totalRows, 'tpv_m0p');
-  const totalM1   = sum(totalRows, 'tpv_m1');
-  const totalPot  = sum(totalRows, 'pot');
-  const totalConv = sum(totalRows, 'conv');
-
-  document.getElementById('kv-tpv-total').textContent   = fmtARS(totalM0);
-  document.getElementById('ks-tpv-total').textContent   = totalConv + ' convertidos';
-  document.getElementById('kv-tpv-proy').textContent    = fmtARS(totalM0p);
-  document.getElementById('ks-tpv-proy').textContent    = 'estimado fin de mes';
-  document.getElementById('kv-tpv-m1').textContent      = fmtARS(totalM1);
-  document.getElementById('ks-tpv-m1').textContent      = 'mes anterior';
-  document.getElementById('kv-potenciados').textContent = totalPot;
-  document.getElementById('ks-potenciados').textContent = 'TPV proy. > $2M y +30% vs M‑1';
-
-  // Table — show rows for current tab filter
-  let tableRows;
-  // Siempre mostrar todas las campañas filtradas por TL
-  tableRows = TPV_DATA.filter(r => CUR_TL === 'all' || r.tl === CUR_TL);
-
-  const container = document.getElementById('tpv-table-container');
-  if (!TPV_DATA.length) {
-    container.innerHTML = '<p class="no-tpv">Sin datos de TPV disponibles aún. Se cargarán en la próxima actualización automática.</p>';
-    return;
-  }
-  if (!tableRows.length) {
-    container.innerHTML = '<p class="no-tpv">Sin datos de TPV para esta selección.</p>';
-    return;
-  }
-
-  const sorted = [...tableRows].sort((a, b) => (b.tpv_m0 || 0) - (a.tpv_m0 || 0));
-  container.innerHTML = `
-    <h3>💰 TPV por Asesor — M0 vs M‑1</h3>
-    <div class="table-wrap"><table>
-      <thead><tr>
-        <th>TL</th>
-        <th>Asesor</th>
-        <th>Campaña</th>
-        <th>Conv.</th>
-        <th>TPV M‑1</th>
-        <th>TPV Real M0</th>
-        <th>TPV Proy. M0</th>
-        <th>Δ Proy. vs M‑1</th>
-        <th>Potenciados</th>
-      </tr></thead>
-      <tbody>${sorted.map(r => {
-        const delta = r.tpv_m1 > 0 ? ((r.tpv_m0p - r.tpv_m1) / r.tpv_m1 * 100) : null;
-        const deltaStr   = delta !== null ? (delta >= 0 ? '+' : '') + delta.toFixed(1) + '%' : '—';
-        const deltaColor = delta !== null ? (delta >= 30 ? '#00A650' : delta >= 0 ? '#FF7733' : '#e53935') : 'inherit';
-        return `<tr>
-          <td><span class="tl-dot" style="background:${TL_COLOR[r.tl]||'#ccc'}"></span>${TL_NAMES[r.tl]||r.tl}</td>
-          <td><b>${r.name}</b></td>
-          <td>${r.campana}</td>
-          <td>${r.conv}</td>
-          <td>${fmtARS(r.tpv_m1 || 0)}</td>
-          <td>${fmtARS(r.tpv_m0 || 0)}</td>
-          <td><b>${fmtARS(r.tpv_m0p || 0)}</b></td>
-          <td style="color:${deltaColor};font-weight:700">${deltaStr}</td>
-          <td>${r.pot > 0 ? '<span class="pill high">'+r.pot+'</span>' : '0'}</td>
-        </tr>`;
-      }).join('')}
-      </tbody>
-    </table></div>`;
+  const rows = TPV_DATA.filter(r => CUR_TL === 'all' || r.tl === CUR_TL);
+  const sum  = (arr, field) => arr.reduce((s, r) => s + (r[field] || 0), 0);
+  document.getElementById('kv-potenciados').textContent = sum(rows, 'pot');
+  document.getElementById('kv-tpv-inc').textContent     = fmtARS(sum(rows, 'tpv_inc_pot'));
 }
 
 // ── INIT ──────────────────────────────────────────────────
