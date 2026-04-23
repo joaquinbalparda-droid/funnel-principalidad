@@ -604,8 +604,15 @@ function setTpvTL(val,btn){
 }
 function setCohortPeriod(p,btn){
   cohortPeriod=p;
-  document.querySelectorAll('[id^="cp-"]').forEach(function(b){b.classList.remove('active');});
-  if(btn)btn.classList.add('active');
+  // Sync all cp-inner buttons across both charts
+  document.querySelectorAll('.cp-inner').forEach(function(b){b.classList.remove('active');});
+  document.querySelectorAll('.cp-inner').forEach(function(b){
+    var id=b.id||'';
+    if((p==='all'&&id.indexOf('-all')>-1)||(p==='m0'&&id.indexOf('-m0')>-1)||
+       (p==='m1'&&id.indexOf('-m1')>-1)||(p==='m2'&&id.indexOf('-m2')>-1))
+      b.classList.add('active');
+  });
+  renderCohortCountChart();
   renderCohortChart();
 }
 function getCohortFiltered(){
