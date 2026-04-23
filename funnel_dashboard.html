@@ -192,6 +192,11 @@
       <button class="tl-btn ag"  onclick="setTpvTL('ag',this)">AG</button>
       <button class="tl-btn fq"  onclick="setTpvTL('fq',this)">FQ</button>
       <button class="tl-btn sz"  onclick="setTpvTL('sz',this)">SZ</button>
+      <div class="filter-sep"></div>
+      <span class="filter-label">Asesor:</span>
+      <select id="tpv-asesor-select" onchange="setTpvAsesor(this.value)" style="padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;font-size:13px;background:#fff;cursor:pointer">
+        <option value="all">Todos los asesores</option>
+      </select>
     </div>
     <div class="kpi-row" id="cohort-kpi-row"></div>
     <div class="charts-grid" style="grid-template-columns:1fr">
@@ -594,13 +599,36 @@ document.getElementById('upd-funnel').textContent=UPDATED||'-';
 // ══════════════════════════════════════════════════════════════════
 // SECCIÓN TPV INCREMENTAL
 // ══════════════════════════════════════════════════════════════════
-var tpvTL='all', cohortPeriod='all', cohortChartInst=null, cohortCountChartInst=null;
+var tpvTL='all',tpvAsesor='all', cohortPeriod='all', cohortChartInst=null, cohortCountChartInst=null;
 
 function setTpvTL(val,btn){
   tpvTL=val;
+  tpvAsesor='all';
   document.querySelectorAll('#section-tpv .tl-btn').forEach(function(b){b.classList.remove('active');});
   if(btn)btn.classList.add('active');
+  populateTpvAsesorSelect();
   renderTpvSection();
+}
+function setTpvAsesor(val){
+  tpvAsesor=val;
+  renderTpvSection();
+}
+function populateTpvAsesorSelect(){
+  var sel=document.getElementById('tpv-asesor-select');
+  if(!sel)return;
+  // Get unique advisors for current TL filter
+  var names=[];
+  TPV_COHORT_DATA.forEach(function(r){
+    if((tpvTL==='all'||r.tl===tpvTL)&&names.indexOf(r.name)<0)names.push(r.name);
+  });
+  names.sort();
+  sel.innerHTML='<option value="all">Todos los asesores</option>';
+  names.forEach(function(n){
+    var o=document.createElement('option');
+    o.value=n; o.textContent=n;
+    sel.appendChild(o);
+  });
+  sel.value='all';
 }
 function setCohortPeriod(p,btn){
   cohortPeriod=p;
@@ -617,8 +645,11 @@ function setCohortPeriod(p,btn){
 }
 function getCohortFiltered(){
   if(!TPV_COHORT_DATA||!TPV_COHORT_DATA.length)return[];
-  if(tpvTL==='all')return TPV_COHORT_DATA;
-  return TPV_COHORT_DATA.filter(function(r){return r.tl===tpvTL;});
+  return TPV_COHORT_DATA.filter(function(r){
+    if(tpvTL!=='all'&&r.tl!==tpvTL)return false;
+    if(tpvAsesor!=='all'&&r.name!==tpvAsesor)return false;
+    return true;
+  });
 }
 function aggCohortByMonth(rows){
   var map={};
@@ -741,6 +772,7 @@ function renderCohortTable(rows){
   document.getElementById('cohort-tbody').innerHTML=h;
 }
 function renderTpvSection(){
+  populateTpvAsesorSelect();
   var rows=getCohortFiltered();
   renderCohortKPIs(rows);
   renderCohortCountChart();
