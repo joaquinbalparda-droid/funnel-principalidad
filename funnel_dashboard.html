@@ -3,407 +3,512 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Funnel Campanas - Principalidad</title>
+  <title>Dashboard Principalidad</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
   <style>
-    :root{--bg:#f0f2f5;--card:#fff;--header:#1a1a2e;--text:#1a1a2e;--muted:#6b7280;--border:#e5e7eb;--radius:10px;--gap:14px;--mjo:#3483FA;--ag:#e6b800;--fq:#00A650;--sz:#FF7733;}
+    :root{--bg:#f0f2f5;--card:#fff;--header:#1a1a2e;--text:#1a1a2e;--muted:#6b7280;--border:#e5e7eb;--radius:10px;--gap:14px;--mjo:#3483FA;--ag:#e6b800;--fq:#00A650;--sz:#FF7733;--pos:#16a34a;--neg:#dc2626;}
     *{margin:0;padding:0;box-sizing:border-box;}
     body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);font-size:14px;}
-    .header{background:var(--header);color:#fff;padding:16px 24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;}
+    .header{background:var(--header);color:#fff;padding:14px 24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;}
     .header h1{font-size:18px;font-weight:700;}
-    .header-right{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
-    .last-updated{font-size:12px;color:#aaa;}
-    .badge-live{background:#00A650;color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;}
-    .container{max-width:1400px;margin:0 auto;padding:var(--gap);}
+    .header-meta{display:flex;flex-direction:column;align-items:flex-end;gap:3px;}
+    .upd-line{font-size:11px;color:#bbb;}
+    .container{max-width:1440px;margin:0 auto;padding:var(--gap);}
+    /* Main section tabs */
+    .section-nav{display:flex;gap:0;margin-bottom:var(--gap);border-radius:var(--radius);overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.12);}
+    .section-btn{flex:1;padding:14px 20px;border:none;cursor:pointer;font-size:15px;font-weight:800;letter-spacing:.3px;transition:all .2s;text-align:center;}
+    .section-btn.funnel-btn{background:#1a1a2e;color:#6b7280;}
+    .section-btn.hist-btn{background:#1a1a2e;color:#6b7280;}
+    .section-btn.funnel-btn.active{background:#3483FA;color:#fff;}
+    .section-btn.hist-btn.active{background:#00A650;color:#fff;}
+    .section{display:none;}.section.active{display:block;}
+    /* Shared filter bar */
+    .filter-bar{display:flex;gap:8px;margin-bottom:var(--gap);flex-wrap:wrap;align-items:center;background:var(--card);padding:12px 16px;border-radius:var(--radius);box-shadow:0 1px 3px rgba(0,0,0,.07);}
+    .filter-label{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-right:4px;}
+    /* Campaign tabs (funnel) */
     .tabs{display:flex;gap:8px;margin-bottom:var(--gap);flex-wrap:wrap;}
     .tab{padding:8px 20px;border-radius:20px;border:2px solid var(--border);background:var(--card);cursor:pointer;font-weight:600;font-size:13px;color:var(--muted);transition:all .15s;}
     .tab.active{border-color:#3483FA;background:#3483FA;color:#fff;}
-    .tab:hover:not(.active){border-color:#3483FA;color:#3483FA;}
-    .tl-bar{display:flex;gap:8px;margin-bottom:var(--gap);flex-wrap:wrap;align-items:center;}
-    .tl-label{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-right:4px;}
+    .sub-tabs{display:none;gap:6px;margin-bottom:var(--gap);}
+    .sub-tabs.visible{display:flex;}
+    .sub-tab{padding:5px 14px;border-radius:14px;border:2px solid var(--border);background:var(--card);cursor:pointer;font-size:12px;font-weight:700;color:var(--muted);transition:all .15s;}
+    .sub-tab.active{border-color:#8b5cf6;background:#8b5cf6;color:#fff;}
+    /* TL buttons */
     .tl-btn{padding:6px 16px;border-radius:16px;border:2px solid var(--border);background:var(--card);cursor:pointer;font-size:13px;font-weight:700;transition:all .15s;}
     .tl-btn.all.active{background:var(--header);border-color:var(--header);color:#fff;}
     .tl-btn.mjo{border-color:var(--mjo);color:var(--mjo);}.tl-btn.mjo.active{background:var(--mjo);color:#fff;}
     .tl-btn.ag{border-color:var(--ag);color:var(--ag);}.tl-btn.ag.active{background:var(--ag);color:#fff;}
     .tl-btn.fq{border-color:var(--fq);color:var(--fq);}.tl-btn.fq.active{background:var(--fq);color:#fff;}
     .tl-btn.sz{border-color:var(--sz);color:var(--sz);}.tl-btn.sz.active{background:var(--sz);color:#fff;}
-    .tpv-top{display:grid;grid-template-columns:1fr 1fr;gap:var(--gap);margin-bottom:var(--gap);}
-    .kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:var(--gap);margin-bottom:var(--gap);}
-    .kpi{background:var(--card);border-radius:var(--radius);padding:16px 20px;box-shadow:0 1px 3px rgba(0,0,0,.07);border-top:4px solid transparent;}
-    .kpi.leads{border-color:#3483FA;}.kpi.contact{border-color:#00A650;}.kpi.neg{border-color:#FF7733;}.kpi.conv{border-color:#8b5cf6;}.kpi.rech{border-color:#e53935;}
-    .kpi.potenciados{border-color:#00A650;}.kpi.tpv-inc{border-color:#8b5cf6;}
-    .kpi-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:4px;}
-    .kpi-value{font-size:28px;font-weight:800;color:var(--text);line-height:1;}
-    .kpi-pct{font-size:13px;color:var(--muted);margin-top:4px;}
-    .charts-row{display:grid;grid-template-columns:1fr 1fr;gap:var(--gap);margin-bottom:var(--gap);}
-    @media(max-width:900px){.charts-row{grid-template-columns:1fr;}}
-    .chart-card{background:var(--card);border-radius:var(--radius);padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.07);}
-    .chart-card h3{font-size:14px;font-weight:700;margin-bottom:16px;}
-    .chart-wrap{position:relative;height:260px;}
+    /* KPI rows */
+    .kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:var(--gap);margin-bottom:var(--gap);}
+    .kpi{background:var(--card);border-radius:var(--radius);padding:14px 18px;box-shadow:0 1px 3px rgba(0,0,0,.07);border-top:4px solid transparent;}
+    .kpi.leads{border-color:#3483FA;}.kpi.cont{border-color:#00A650;}.kpi.conv{border-color:#8b5cf6;}
+    .kpi.rech{border-color:#e53935;}.kpi.neg{border-color:#FF7733;}.kpi.pend{border-color:#94a3b8;}
+    .kpi.pot{border-color:#00A650;}.kpi.tpv{border-color:#8b5cf6;}
+    .kpi.contpct{border-color:#00A650;}.kpi.contasesor{border-color:#0ea5e9;}
+    .kpi.convpct{border-color:#8b5cf6;}.kpi.rechpct{border-color:#e53935;}
+    .kpi-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:4px;}
+    .kpi-value{font-size:24px;font-weight:800;color:var(--text);line-height:1.1;}
+    .kpi-sub{font-size:11px;color:var(--muted);margin-top:3px;}
+    .kpi-pct{font-size:12px;color:var(--muted);margin-top:3px;}
+    .kpi-delta{font-size:12px;font-weight:700;margin-top:3px;}
+    .kpi-delta.up{color:var(--pos);}.kpi-delta.down{color:var(--neg);}.kpi-delta.flat{color:var(--muted);}
+    /* Charts */
+    .charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--gap);margin-bottom:var(--gap);}
+    @media(max-width:900px){.charts-grid{grid-template-columns:1fr;}}
+    .chart-card{background:var(--card);border-radius:var(--radius);padding:18px 20px;box-shadow:0 1px 3px rgba(0,0,0,.07);}
+    .chart-card h3{font-size:13px;font-weight:700;margin-bottom:14px;}
+    .chart-wrap{position:relative;height:240px;}
+    /* Funnel visual */
     .funnel-stage{margin-bottom:10px;}
     .funnel-row{display:flex;align-items:center;gap:10px;}
-    .funnel-name{width:135px;font-size:13px;font-weight:600;color:var(--muted);text-align:right;flex-shrink:0;}
-    .funnel-bar-wrap{flex:1;background:#f3f4f6;border-radius:6px;height:28px;overflow:hidden;}
-    .funnel-bar{height:100%;border-radius:6px;transition:width .4s;display:flex;align-items:center;padding-left:8px;min-width:2px;}
+    .funnel-name{width:130px;font-size:13px;font-weight:600;color:var(--muted);text-align:right;flex-shrink:0;}
+    .funnel-bar-wrap{flex:1;background:#f3f4f6;border-radius:6px;height:26px;overflow:hidden;}
+    .funnel-bar{height:100%;border-radius:6px;display:flex;align-items:center;padding-left:8px;min-width:2px;transition:width .4s;}
     .funnel-bar span{font-size:12px;font-weight:700;color:#fff;white-space:nowrap;}
-    .funnel-count{width:55px;text-align:right;font-size:13px;font-weight:700;flex-shrink:0;}
-    .funnel-pct{width:52px;text-align:right;font-size:12px;color:var(--muted);flex-shrink:0;}
-    .tl-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:var(--gap);margin-bottom:var(--gap);}
-    .tl-card{background:var(--card);border-radius:var(--radius);padding:16px 20px;box-shadow:0 1px 3px rgba(0,0,0,.07);border-left:5px solid;}
-    .tl-card.mjo{border-color:var(--mjo);}.tl-card.ag{border-color:var(--ag);}.tl-card.fq{border-color:var(--fq);}.tl-card.sz{border-color:var(--sz);}
-    .tl-card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
-    .tl-card-name{font-size:16px;font-weight:800;}
-    .tl-card-badge{font-size:11px;background:#f3f4f6;padding:3px 10px;border-radius:12px;color:var(--muted);font-weight:600;}
-    .tl-mini-stat{display:flex;justify-content:space-between;margin-bottom:4px;font-size:12px;color:var(--muted);}
-    .tl-mini-stat b{color:var(--text);}
-    .mini-bar-wrap{background:#f3f4f6;border-radius:4px;height:6px;margin-bottom:8px;overflow:hidden;}
-    .mini-bar{height:6px;border-radius:4px;transition:width .4s;}
-    .table-card{background:var(--card);border-radius:var(--radius);padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.07);}
-    .table-card h3{font-size:14px;font-weight:700;margin-bottom:16px;}
+    .funnel-count{width:55px;text-align:right;font-size:13px;font-weight:700;}
+    .funnel-pct{width:50px;text-align:right;font-size:12px;color:var(--muted);}
+    /* TPV strip */
+    .tpv-strip{display:grid;grid-template-columns:1fr 1fr;gap:var(--gap);margin-bottom:var(--gap);}
+    .tpv-card{background:var(--card);border-radius:var(--radius);padding:14px 18px;box-shadow:0 1px 3px rgba(0,0,0,.07);border-left:4px solid #8b5cf6;}
+    .tpv-card.inc{border-left-color:#00A650;}
+    .tpv-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);}
+    .tpv-value{font-size:22px;font-weight:800;margin-top:4px;}
+    .tpv-sub{font-size:12px;color:var(--muted);margin-top:2px;}
+    /* Table */
+    .table-card{background:var(--card);border-radius:var(--radius);padding:18px 20px;box-shadow:0 1px 3px rgba(0,0,0,.07);margin-bottom:var(--gap);}
+    .table-card h3{font-size:14px;font-weight:700;margin-bottom:14px;}
     .table-wrap{overflow-x:auto;}
     table{width:100%;border-collapse:collapse;font-size:13px;}
-    th{padding:10px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);border-bottom:2px solid var(--border);cursor:pointer;white-space:nowrap;user-select:none;}
-    th:hover{color:var(--text);}
-    td{padding:10px 12px;border-bottom:1px solid var(--border);}
-    tr:last-child td{border-bottom:none;}
-    tr:hover td{background:#f9fafb;}
-    .tl-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle;}
-    .pill{display:inline-block;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:700;}
+    th{padding:9px 11px;text-align:right;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);border-bottom:2px solid var(--border);white-space:nowrap;}
+    th:first-child,th:nth-child(2){text-align:left;}
+    td{padding:9px 11px;border-bottom:1px solid var(--border);text-align:right;}
+    td:first-child,td:nth-child(2){text-align:left;}
+    tr:last-child td{border-bottom:none;}tr:hover td{background:#f9fafb;}
+    .tl-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:middle;}
+    .pill{display:inline-block;padding:1px 8px;border-radius:10px;font-size:11px;font-weight:700;}
     .pill.high{background:#d1fae5;color:#065f46;}.pill.mid{background:#fef3c7;color:#92400e;}.pill.low{background:#fee2e2;color:#991b1b;}
-    .pill.pot{background:#ede9fe;color:#5b21b6;}
-    footer{text-align:center;padding:20px;font-size:12px;color:var(--muted);}
-    .sub-bar{display:none;gap:8px;margin-bottom:var(--gap);flex-wrap:wrap;align-items:center;}
-    .sub-bar.visible{display:flex;}
-    .sub-label{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-right:4px;}
-    .sub-btn{padding:5px 14px;border-radius:14px;border:2px solid var(--border);background:var(--card);cursor:pointer;font-size:12px;font-weight:600;color:var(--muted);transition:all .15s;}
-    .sub-btn.active{border-color:#8b5cf6;background:#8b5cf6;color:#fff;}
+    .pill.pot{background:#d1fae5;color:#065f46;}
+    /* Asesor select */
+    .asesor-select{padding:6px 12px;border-radius:8px;border:2px solid var(--border);font-size:13px;font-weight:600;background:var(--card);cursor:pointer;min-width:200px;}
+    .filter-sep{width:1px;height:28px;background:var(--border);margin:0 6px;}
+    .desglosar-btn{padding:6px 16px;border-radius:16px;border:2px solid var(--border);background:var(--card);cursor:pointer;font-size:12px;font-weight:700;color:var(--muted);transition:all .15s;margin-left:auto;}
+    .desglosar-btn.active{border-color:#8b5cf6;background:#8b5cf6;color:#fff;}
+    footer{text-align:center;padding:16px;font-size:12px;color:var(--muted);}
   </style>
 </head>
 <body>
 <div class="header">
-  <div><h1>Funnel de Campanas - Principalidad</h1></div>
-  <div class="header-right">
-    <span class="last-updated" id="last-updated">Sin datos</span>
-    <span class="badge-live">BigQuery</span>
+  <h1>&#128200; Dashboard Principalidad &mdash; MercadoPago</h1>
+  <div class="header-meta">
+    <span class="upd-line">Mes actual: <span id="upd-funnel">-</span></span>
+    <span class="upd-line">Historico: <span id="upd-hist">-</span></span>
   </div>
 </div>
 <div class="container">
-  <div class="tpv-top">
-    <div class="kpi potenciados">
-      <div class="kpi-label">Potenciados M0</div>
-      <div class="kpi-value" id="kv-potenciados">-</div>
-      <div class="kpi-pct">TPV proy. &gt; $2M y +30% vs M-1</div>
+  <!-- SECTION NAV -->
+  <div class="section-nav">
+    <button class="section-btn funnel-btn active" onclick="switchSection('funnel',this)">&#128197; GESTI&Oacute;N MES ACTUAL</button>
+    <button class="section-btn hist-btn" onclick="switchSection('hist',this)">&#128202; GESTI&Oacute;N HIST&Oacute;RICA</button>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- SECTION: MES ACTUAL                            -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <div id="section-funnel" class="section active">
+    <div class="tabs" id="camp-tabs">
+      <button class="tab active" onclick="setTab('TOTAL',this)">TOTAL</button>
+      <button class="tab" onclick="setTab('CALENTAMIENTO',this)">CALENTAMIENTO</button>
+      <button class="tab" onclick="setTab('PROMO CUOTAS',this)">PROMO CUOTAS</button>
     </div>
-    <div class="kpi tpv-inc">
-      <div class="kpi-label">TPV Incremental Potenciados</div>
-      <div class="kpi-value" id="kv-tpv-inc">-</div>
-      <div class="kpi-pct">TPV M0 proy. - TPV M-1 (potenciados)</div>
+    <div class="sub-tabs" id="sub-tabs">
+      <button class="sub-tab active" onclick="setSub(null,this)">TODOS</button>
+      <button class="sub-tab" onclick="setSub('DISPONIBLE',this)">DISPONIBLE</button>
+      <button class="sub-tab" onclick="setSub('PIDIO ASESOR',this)">PIDI&Oacute; ASESOR</button>
+      <button class="sub-tab" onclick="setSub('YA ACTIVO',this)">YA ACTIV&Oacute;</button>
+    </div>
+    <div class="filter-bar">
+      <span class="filter-label">TL:</span>
+      <button class="tl-btn all active" onclick="setFTL('all',this)">Todos</button>
+      <button class="tl-btn mjo" onclick="setFTL('mjo',this)">MJO</button>
+      <button class="tl-btn ag"  onclick="setFTL('ag',this)">AG</button>
+      <button class="tl-btn fq"  onclick="setFTL('fq',this)">FQ</button>
+      <button class="tl-btn sz"  onclick="setFTL('sz',this)">SZ</button>
+    </div>
+    <div class="tpv-strip" id="tpv-strip"></div>
+    <div class="kpi-row" id="f-kpi-row"></div>
+    <div class="charts-grid">
+      <div class="chart-card"><h3>Funnel de Gestion</h3><div class="chart-wrap" id="funnel-visual"></div></div>
+      <div class="chart-card"><h3>Distribucion por Estado</h3><div class="chart-wrap"><canvas id="chart-estados"></canvas></div></div>
+    </div>
+    <div class="table-card">
+      <h3 id="f-table-title">Detalle por Asesor</h3>
+      <div class="table-wrap"><table>
+        <thead><tr>
+          <th style="text-align:left">TL</th><th style="text-align:left">Asesor</th>
+          <th>Leads</th><th>Cont%</th><th>Conv%</th><th>Rech%</th>
+          <th>Neg</th><th>Pend</th><th>Pot</th>
+        </tr></thead>
+        <tbody id="f-tbody"></tbody>
+      </table></div>
     </div>
   </div>
-  <div class="tabs">
-    <button class="tab active" onclick="setTab('CALENTAMIENTO',this)">Calentamiento</button>
-    <button class="tab" onclick="setTab('PROMO CUOTAS',this)">Promo Cuotas</button>
-    <button class="tab" onclick="setTab('TOTAL',this)">Total Equipo</button>
-  </div>
-  <div class="sub-bar" id="sub-bar">
-    <span class="sub-label">Estado:</span>
-    <button class="sub-btn active" onclick="setSub(null,this)">Todos</button>
-    <button class="sub-btn" onclick="setSub('DISPONIBLE',this)">Disponible</button>
-    <button class="sub-btn" onclick="setSub('PIDIO ASESOR',this)">Pidio Asesor</button>
-    <button class="sub-btn" onclick="setSub('YA ACTIVO',this)">Ya Activo</button>
-  </div>
-  <div class="tl-bar">
-    <span class="tl-label">Team Leader:</span>
-    <button class="tl-btn all active" onclick="setTL('all',this)">Todos</button>
-    <button class="tl-btn mjo" onclick="setTL('mjo',this)">MJO</button>
-    <button class="tl-btn ag"  onclick="setTL('ag',this)">AG</button>
-    <button class="tl-btn fq"  onclick="setTL('fq',this)">FQ</button>
-    <button class="tl-btn sz"  onclick="setTL('sz',this)">SZ</button>
-  </div>
-  <div class="kpi-row">
-    <div class="kpi leads">  <div class="kpi-label">Total Leads</div>     <div class="kpi-value" id="kv-leads">-</div>  <div class="kpi-pct" id="ks-leads">&nbsp;</div></div>
-    <div class="kpi contact"><div class="kpi-label">Contactados</div>     <div class="kpi-value" id="kv-cont">-</div>   <div class="kpi-pct" id="ks-cont">&nbsp;</div></div>
-    <div class="kpi neg">    <div class="kpi-label">En Negociacion</div>  <div class="kpi-value" id="kv-neg">-</div>    <div class="kpi-pct" id="ks-neg">&nbsp;</div></div>
-    <div class="kpi conv">   <div class="kpi-label">Convertidos</div>     <div class="kpi-value" id="kv-conv">-</div>   <div class="kpi-pct" id="ks-conv">&nbsp;</div></div>
-    <div class="kpi rech">   <div class="kpi-label">Rechazados</div>      <div class="kpi-value" id="kv-rech">-</div>   <div class="kpi-pct" id="ks-rech">&nbsp;</div></div>
-  </div>
-  <div class="charts-row">
-    <div class="chart-card"><h3>Funnel de Conversion</h3><div id="funnel-stages"></div></div>
-    <div class="chart-card"><h3>Conversion % por TL</h3><div class="chart-wrap"><canvas id="tl-chart"></canvas></div></div>
-  </div>
-  <div class="tl-grid" id="tl-cards"></div>
-  <div class="table-card">
-    <h3>Ranking por Asesor</h3>
-    <div class="table-wrap"><table>
-      <thead><tr>
-        <th onclick="sortBy('tl')">TL</th>
-        <th onclick="sortBy('name')">Asesor</th>
-        <th onclick="sortBy('leads')">Leads</th>
-        <th onclick="sortBy('cont')">Contactados</th>
-        <th onclick="sortBy('contPct')">Cont.%</th>
-        <th onclick="sortBy('neg')">En Neg.</th>
-        <th onclick="sortBy('conv')">Convertidos</th>
-        <th onclick="sortBy('convPct')">Conv/Cont%</th>
-        <th onclick="sortBy('rech')">Rechazados</th>
-        <th onclick="sortBy('pend')">Pendientes</th>
-        <th onclick="sortBy('pot')">Potenciados</th>
-        <th onclick="sortBy('tpv_inc_pot')">TPV Inc. Pot.</th>
-      </tr></thead>
-      <tbody id="asesor-tbody"></tbody>
-    </table></div>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- SECTION: HISTORICO                             -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <div id="section-hist" class="section">
+    <div class="filter-bar">
+      <span class="filter-label">TL:</span>
+      <button class="tl-btn all active" onclick="setHTL('all',this)">Todos</button>
+      <button class="tl-btn mjo" onclick="setHTL('mjo',this)">MJO</button>
+      <button class="tl-btn ag"  onclick="setHTL('ag',this)">AG</button>
+      <button class="tl-btn fq"  onclick="setHTL('fq',this)">FQ</button>
+      <button class="tl-btn sz"  onclick="setHTL('sz',this)">SZ</button>
+      <div class="filter-sep"></div>
+      <span class="filter-label">Asesor:</span>
+      <select class="asesor-select" id="asesor-select" onchange="setAsesor(this.value)">
+        <option value="all">Todos los asesores</option>
+      </select>
+      <button class="desglosar-btn" id="desglosar-btn" onclick="toggleDesglosar()">Desglosar por TL</button>
+    </div>
+    <div class="kpi-row" id="h-kpi-row"></div>
+    <div class="charts-grid">
+      <div class="chart-card"><h3>Contactabilidad % por mes</h3><div class="chart-wrap"><canvas id="chart-cont"></canvas></div></div>
+      <div class="chart-card"><h3>Contactados / Asesor por mes</h3><div class="chart-wrap"><canvas id="chart-contasesor"></canvas></div></div>
+      <div class="chart-card"><h3>Conversion % por mes</h3><div class="chart-wrap"><canvas id="chart-conv"></canvas></div></div>
+      <div class="chart-card"><h3>Rechazados % por mes</h3><div class="chart-wrap"><canvas id="chart-rech"></canvas></div></div>
+    </div>
+    <div class="table-card">
+      <h3>Evolucion mensual</h3>
+      <div class="table-wrap"><table>
+        <thead><tr>
+          <th style="text-align:left">Mes</th>
+          <th>Leads</th><th>Contactados</th><th>Cont%</th><th>Cont/Asesor</th>
+          <th>Convertidos</th><th>Conv%</th><th>Rechazados</th><th>Rech%</th>
+          <th>En Neg.</th><th>Potenciados</th>
+        </tr></thead>
+        <tbody id="h-tbody"></tbody>
+      </table></div>
+    </div>
   </div>
 </div>
-<footer>Funnel Principalidad &middot; MercadoPago &middot; <span id="footer-updated">-</span> &middot; BigQuery</footer>
+<footer>Principalidad Dashboard &middot; MercadoPago &middot; BigQuery</footer>
+
 <script>
-/* %%UPDATED%% */var UPDATED='23/04/2026 09:38';
-/* %%DATA_LINE%% */var DATA=[{"campana":"CALENTAMIENTO","sub":null,"tl":"ag","name":"Alejandro Diaz","leads":35,"cont":14,"conv":6,"pend":3,"neg":1,"rech":4,"pot":0,"tpv_m0p":8379580.6,"tpv_m1":8069120.57,"tpv_inc_pot":0},{"campana":"CALENTAMIENTO","sub":null,"tl":"ag","name":"Analia Maisonnave","leads":27,"cont":19,"conv":1,"pend":2,"neg":1,"rech":18,"pot":0,"tpv_m0p":0.0,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"CALENTAMIENTO","sub":null,"tl":"ag","name":"Camila Coca","leads":35,"cont":32,"conv":2,"pend":8,"neg":8,"rech":11,"pot":0,"tpv_m0p":6217226.09,"tpv_m1":5328857.0,"tpv_inc_pot":0},{"campana":"CALENTAMIENTO","sub":null,"tl":"ag","name":"Catalina Fernandez","leads":23,"cont":22,"conv":3,"pend":3,"neg":2,"rech":14,"pot":1,"tpv_m0p":3771580.43,"tpv_m1":2484800.0,"tpv_inc_pot":1286780.43},{"campana":"CALENTAMIENTO","sub":null,"tl":"ag","name":"Diego Moreno","leads":37,"cont":16,"conv":3,"pend":5,"neg":0,"rech":7,"pot":0,"tpv_m0p":5439614.7,"tpv_m1":5123253.02,"tpv_inc_pot":0},{"campana":"CALENTAMIENTO","sub":null,"tl":"ag","name":"Emanuel Dursi","leads":36,"cont":25,"conv":5,"pend":6,"neg":6,"rech":8,"pot":1,"tpv_m0p":12453071.36,"tpv_m1":7359814.5,"tpv_inc_pot":5093256.86},{"campana":"CALENTAMIENTO","sub":null,"tl":"ag","name":"Federico Vitabile","leads":35,"cont":19,"conv":2,"pend":4,"neg":3,"rech":10,"pot":1,"tpv_m0p":13394364.13,"tpv_m1":927326.0,"tpv_inc_pot":12467038.13},{"campana":"CALENTAMIENTO","sub":null,"tl":"ag","name":"Giselda Allende","leads":35,"cont":24,"conv":3,"pend":0,"neg":1,"rech":12,"pot":1,"tpv_m0p":21685753.04,"tpv_m1":11536794.5,"tpv_inc_pot":10148958.54},{"campana":"CALENTAMIENTO","sub":null,"tl":"ag","name":"Matias Mesiano","leads":28,"cont":13,"conv":2,"pend":5,"neg":0,"rech":6,"pot":0,"tpv_m0p":1939063.04,"tpv_m1":220100.0,"tpv_inc_pot":0},{"campana":"CALENTAMIENTO","sub":null,"tl":"fq","name":"Azul Pacioni","leads":32,"cont":31,"conv":3,"pend":2,"neg":0,"rech":24,"pot":0,"tpv_m0p":3289587.39,"tpv_m1":6356016.41,"tpv_inc_pot":0},{"campana":"CALENTAMIENTO","sub":null,"tl":"fq","name":"Barbara Nuñez","leads":36,"cont":29,"conv":7,"pend":2,"neg":1,"rech":18,"pot":1,"tpv_m0p":10034309.14,"tpv_m1":7406661.92,"tpv_inc_pot":2627647.22},{"campana":"CALENTAMIENTO","sub":null,"tl":"fq","name":"Diana Fraser","leads":27,"cont":16,"conv":1,"pend":3,"neg":0,"rech":9,"pot":1,"tpv_m0p":7375082.99,"tpv_m1":3452036.57,"tpv_inc_pot":3923046.42},{"campana":"CALENTAMIENTO","sub":null,"tl":"fq","name":"Francelys Perez","leads":34,"cont":21,"conv":4,"pend":3,"neg":3,"rech":11,"pot":0,"tpv_m0p":712173.91,"tpv_m1":2005300.0,"tpv_inc_pot":0},{"campana":"CALENTAMIENTO","sub":null,"tl":"fq","name":"Joaquin Lescano","leads":30,"cont":27,"conv":1,"pend":1,"neg":5,"rech":20,"pot":0,"tpv_m0p":3435924.93,"tpv_m1":5535675.85,"tpv_inc_pot":0},{"campana":"CALENTAMIENTO","sub":null,"tl":"fq","name":"Luciana Pisacco","leads":33,"cont":13,"conv":0,"pend":3,"neg":0,"rech":10,"pot":0,"tpv_m0p":0.0,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"CALENTAMIENTO","sub":null,"tl":"fq","name":"Micaela Marsuzi","leads":30,"cont":19,"conv":3,"pend":2,"neg":4,"rech":11,"pot":0,"tpv_m0p":6987847.83,"tpv_m1":6814728.0,"tpv_inc_pot":0},{"campana":"CALENTAMIENTO","sub":null,"tl":"fq","name":"Sebastian Jansa","leads":35,"cont":28,"conv":5,"pend":4,"neg":5,"rech":15,"pot":0,"tpv_m0p":9388027.83,"tpv_m1":12189478.33,"tpv_inc_pot":0},{"campana":"CALENTAMIENTO","sub":null,"tl":"mjo","name":"Agustin Diz","leads":37,"cont":18,"conv":0,"pend":4,"neg":3,"rech":11,"pot":0,"tpv_m0p":0.0,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"CALENTAMIENTO","sub":null,"tl":"mjo","name":"Carolina Delgado","leads":34,"cont":31,"conv":4,"pend":1,"neg":2,"rech":24,"pot":0,"tpv_m0p":2073847.83,"tpv_m1":2693748.0,"tpv_inc_pot":0},{"campana":"CALENTAMIENTO","sub":null,"tl":"mjo","name":"Juan Cruz Rial","leads":36,"cont":22,"conv":3,"pend":8,"neg":1,"rech":10,"pot":1,"tpv_m0p":2861843.48,"tpv_m1":1585852.0,"tpv_inc_pot":1275991.48},{"campana":"CALENTAMIENTO","sub":null,"tl":"mjo","name":"Julian Torres","leads":32,"cont":27,"conv":2,"pend":1,"neg":4,"rech":22,"pot":1,"tpv_m0p":5971498.68,"tpv_m1":3464595.3,"tpv_inc_pot":2506903.38},{"campana":"CALENTAMIENTO","sub":null,"tl":"mjo","name":"Manuel Elizarraga","leads":36,"cont":25,"conv":2,"pend":4,"neg":3,"rech":16,"pot":0,"tpv_m0p":3919930.43,"tpv_m1":3438640.0,"tpv_inc_pot":0},{"campana":"CALENTAMIENTO","sub":null,"tl":"mjo","name":"Mariana Gonzalez","leads":36,"cont":26,"conv":4,"pend":5,"neg":3,"rech":13,"pot":1,"tpv_m0p":6109746.52,"tpv_m1":75500.0,"tpv_inc_pot":6034246.52},{"campana":"CALENTAMIENTO","sub":null,"tl":"mjo","name":"Rocio Angueira","leads":29,"cont":18,"conv":1,"pend":6,"neg":4,"rech":5,"pot":0,"tpv_m0p":320259.38,"tpv_m1":295100.0,"tpv_inc_pot":0},{"campana":"CALENTAMIENTO","sub":null,"tl":"mjo","name":"Soledad Maydana","leads":28,"cont":24,"conv":4,"pend":2,"neg":2,"rech":16,"pot":0,"tpv_m0p":1605913.04,"tpv_m1":1688925.45,"tpv_inc_pot":0},{"campana":"CALENTAMIENTO","sub":null,"tl":"sz","name":"Cristina Hsieh","leads":1,"cont":1,"conv":0,"pend":0,"neg":0,"rech":1,"pot":0,"tpv_m0p":0.0,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"DISPONIBLE","tl":"ag","name":"Alejandro Diaz","leads":29,"cont":8,"conv":1,"pend":2,"neg":2,"rech":3,"pot":0,"tpv_m0p":332278.75,"tpv_m1":131436.59,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"DISPONIBLE","tl":"ag","name":"Analia Maisonnave","leads":37,"cont":22,"conv":2,"pend":5,"neg":0,"rech":9,"pot":1,"tpv_m0p":16435102.17,"tpv_m1":0.0,"tpv_inc_pot":16435102.17},{"campana":"PROMO CUOTAS","sub":"DISPONIBLE","tl":"ag","name":"Camila Coca","leads":26,"cont":17,"conv":1,"pend":6,"neg":8,"rech":1,"pot":1,"tpv_m0p":9261793.04,"tpv_m1":375400.0,"tpv_inc_pot":8886393.04},{"campana":"PROMO CUOTAS","sub":"DISPONIBLE","tl":"ag","name":"Catalina Fernandez","leads":46,"cont":13,"conv":0,"pend":3,"neg":3,"rech":7,"pot":0,"tpv_m0p":0.0,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"DISPONIBLE","tl":"ag","name":"Diego Moreno","leads":25,"cont":13,"conv":0,"pend":5,"neg":1,"rech":7,"pot":0,"tpv_m0p":0.0,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"DISPONIBLE","tl":"ag","name":"Emanuel Dursi","leads":35,"cont":16,"conv":1,"pend":8,"neg":1,"rech":6,"pot":0,"tpv_m0p":0.0,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"DISPONIBLE","tl":"ag","name":"Federico Vitabile","leads":31,"cont":15,"conv":1,"pend":6,"neg":2,"rech":7,"pot":0,"tpv_m0p":66200.73,"tpv_m1":45264.8,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"DISPONIBLE","tl":"ag","name":"Giselda Allende","leads":35,"cont":23,"conv":1,"pend":9,"neg":3,"rech":5,"pot":0,"tpv_m0p":0.0,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"DISPONIBLE","tl":"ag","name":"Matias Mesiano","leads":34,"cont":12,"conv":1,"pend":6,"neg":0,"rech":5,"pot":0,"tpv_m0p":744130.43,"tpv_m1":60000.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"DISPONIBLE","tl":"fq","name":"Azul Pacioni","leads":32,"cont":15,"conv":0,"pend":7,"neg":2,"rech":6,"pot":0,"tpv_m0p":0.0,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"DISPONIBLE","tl":"fq","name":"Barbara Nuñez","leads":33,"cont":16,"conv":1,"pend":4,"neg":0,"rech":10,"pot":0,"tpv_m0p":46956.52,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"DISPONIBLE","tl":"fq","name":"Diana Fraser","leads":33,"cont":8,"conv":0,"pend":1,"neg":3,"rech":3,"pot":0,"tpv_m0p":0.0,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"DISPONIBLE","tl":"fq","name":"Francelys Perez","leads":36,"cont":12,"conv":1,"pend":4,"neg":1,"rech":6,"pot":0,"tpv_m0p":0.0,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"DISPONIBLE","tl":"fq","name":"Joaquin Lescano","leads":44,"cont":14,"conv":1,"pend":3,"neg":0,"rech":6,"pot":0,"tpv_m0p":1009826.09,"tpv_m1":325000.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"DISPONIBLE","tl":"fq","name":"Luciana Pisacco","leads":36,"cont":13,"conv":1,"pend":5,"neg":0,"rech":7,"pot":1,"tpv_m0p":4985492.66,"tpv_m1":0.0,"tpv_inc_pot":4985492.66},{"campana":"PROMO CUOTAS","sub":"DISPONIBLE","tl":"fq","name":"Micaela Marsuzi","leads":36,"cont":17,"conv":0,"pend":8,"neg":2,"rech":8,"pot":0,"tpv_m0p":0.0,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"DISPONIBLE","tl":"fq","name":"Sebastian Jansa","leads":33,"cont":18,"conv":1,"pend":9,"neg":1,"rech":7,"pot":0,"tpv_m0p":103539.13,"tpv_m1":230770.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"DISPONIBLE","tl":"mjo","name":"Agustin Diz","leads":27,"cont":19,"conv":4,"pend":7,"neg":5,"rech":3,"pot":1,"tpv_m0p":4541113.75,"tpv_m1":408466.34,"tpv_inc_pot":4132647.41},{"campana":"PROMO CUOTAS","sub":"DISPONIBLE","tl":"mjo","name":"Carolina Delgado","leads":30,"cont":19,"conv":3,"pend":7,"neg":3,"rech":6,"pot":1,"tpv_m0p":2549804.35,"tpv_m1":290600.0,"tpv_inc_pot":2259204.35},{"campana":"PROMO CUOTAS","sub":"DISPONIBLE","tl":"mjo","name":"Juan Cruz Rial","leads":35,"cont":28,"conv":2,"pend":9,"neg":12,"rech":5,"pot":1,"tpv_m0p":2839723.3,"tpv_m1":506226.8,"tpv_inc_pot":2333496.5},{"campana":"PROMO CUOTAS","sub":"DISPONIBLE","tl":"mjo","name":"Julian Torres","leads":37,"cont":29,"conv":0,"pend":10,"neg":7,"rech":12,"pot":0,"tpv_m0p":0.0,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"DISPONIBLE","tl":"mjo","name":"Manuel Elizarraga","leads":26,"cont":20,"conv":2,"pend":7,"neg":4,"rech":7,"pot":0,"tpv_m0p":630808.7,"tpv_m1":143577.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"DISPONIBLE","tl":"mjo","name":"Mariana Gonzalez","leads":37,"cont":16,"conv":4,"pend":4,"neg":1,"rech":5,"pot":1,"tpv_m0p":2455656.52,"tpv_m1":340753.0,"tpv_inc_pot":2114903.52},{"campana":"PROMO CUOTAS","sub":"DISPONIBLE","tl":"mjo","name":"Rocio Angueira","leads":31,"cont":11,"conv":0,"pend":4,"neg":3,"rech":5,"pot":0,"tpv_m0p":0.0,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"DISPONIBLE","tl":"mjo","name":"Soledad Maydana","leads":41,"cont":12,"conv":0,"pend":3,"neg":3,"rech":6,"pot":0,"tpv_m0p":0.0,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"DISPONIBLE","tl":"sz","name":"Cristina Hsieh","leads":9,"cont":5,"conv":0,"pend":1,"neg":0,"rech":4,"pot":0,"tpv_m0p":0.0,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"DISPONIBLE","tl":"sz","name":"Sofia Zhuang","leads":2,"cont":1,"conv":0,"pend":0,"neg":1,"rech":0,"pot":0,"tpv_m0p":0.0,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"PIDIO ASESOR","tl":"ag","name":"Alejandro Diaz","leads":5,"cont":3,"conv":0,"pend":2,"neg":1,"rech":0,"pot":0,"tpv_m0p":0.0,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"PIDIO ASESOR","tl":"ag","name":"Analia Maisonnave","leads":8,"cont":4,"conv":0,"pend":3,"neg":0,"rech":0,"pot":0,"tpv_m0p":0.0,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"PIDIO ASESOR","tl":"ag","name":"Camila Coca","leads":7,"cont":7,"conv":0,"pend":3,"neg":0,"rech":4,"pot":0,"tpv_m0p":0.0,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"PIDIO ASESOR","tl":"ag","name":"Catalina Fernandez","leads":1,"cont":1,"conv":0,"pend":1,"neg":0,"rech":0,"pot":0,"tpv_m0p":0.0,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"PIDIO ASESOR","tl":"ag","name":"Diego Moreno","leads":3,"cont":3,"conv":1,"pend":1,"neg":0,"rech":1,"pot":0,"tpv_m0p":0.0,"tpv_m1":10000.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"PIDIO ASESOR","tl":"ag","name":"Emanuel Dursi","leads":7,"cont":6,"conv":0,"pend":3,"neg":2,"rech":1,"pot":0,"tpv_m0p":0.0,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"PIDIO ASESOR","tl":"ag","name":"Federico Vitabile","leads":6,"cont":3,"conv":0,"pend":1,"neg":0,"rech":2,"pot":0,"tpv_m0p":0.0,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"PIDIO ASESOR","tl":"ag","name":"Giselda Allende","leads":7,"cont":4,"conv":1,"pend":1,"neg":0,"rech":1,"pot":1,"tpv_m0p":3211085.22,"tpv_m1":270850.0,"tpv_inc_pot":2940235.22},{"campana":"PROMO CUOTAS","sub":"PIDIO ASESOR","tl":"ag","name":"Matias Mesiano","leads":3,"cont":0,"conv":0,"pend":0,"neg":0,"rech":0,"pot":0,"tpv_m0p":0.0,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"PIDIO ASESOR","tl":"fq","name":"Azul Pacioni","leads":7,"cont":6,"conv":0,"pend":2,"neg":2,"rech":2,"pot":0,"tpv_m0p":0.0,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"PIDIO ASESOR","tl":"fq","name":"Barbara Nuñez","leads":4,"cont":4,"conv":1,"pend":0,"neg":0,"rech":3,"pot":0,"tpv_m0p":1233237.39,"tpv_m1":808332.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"PIDIO ASESOR","tl":"fq","name":"Diana Fraser","leads":4,"cont":3,"conv":0,"pend":0,"neg":0,"rech":2,"pot":0,"tpv_m0p":0.0,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"PIDIO ASESOR","tl":"fq","name":"Francelys Perez","leads":6,"cont":4,"conv":0,"pend":2,"neg":0,"rech":2,"pot":0,"tpv_m0p":0.0,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"PIDIO ASESOR","tl":"fq","name":"Joaquin Lescano","leads":7,"cont":7,"conv":1,"pend":1,"neg":0,"rech":5,"pot":0,"tpv_m0p":1489897.83,"tpv_m1":620075.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"PIDIO ASESOR","tl":"fq","name":"Luciana Pisacco","leads":9,"cont":4,"conv":0,"pend":2,"neg":0,"rech":2,"pot":0,"tpv_m0p":0.0,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"PIDIO ASESOR","tl":"fq","name":"Micaela Marsuzi","leads":7,"cont":5,"conv":0,"pend":1,"neg":2,"rech":1,"pot":0,"tpv_m0p":0.0,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"PIDIO ASESOR","tl":"fq","name":"Sebastian Jansa","leads":7,"cont":6,"conv":0,"pend":3,"neg":1,"rech":2,"pot":0,"tpv_m0p":0.0,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"PIDIO ASESOR","tl":"mjo","name":"Agustin Diz","leads":6,"cont":4,"conv":0,"pend":1,"neg":1,"rech":2,"pot":0,"tpv_m0p":0.0,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"PIDIO ASESOR","tl":"mjo","name":"Carolina Delgado","leads":7,"cont":4,"conv":0,"pend":3,"neg":0,"rech":1,"pot":0,"tpv_m0p":0.0,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"PIDIO ASESOR","tl":"mjo","name":"Juan Cruz Rial","leads":4,"cont":2,"conv":1,"pend":0,"neg":0,"rech":1,"pot":0,"tpv_m0p":0.0,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"PIDIO ASESOR","tl":"mjo","name":"Julian Torres","leads":8,"cont":4,"conv":1,"pend":1,"neg":0,"rech":2,"pot":0,"tpv_m0p":830869.57,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"PIDIO ASESOR","tl":"mjo","name":"Manuel Elizarraga","leads":6,"cont":5,"conv":0,"pend":1,"neg":2,"rech":2,"pot":0,"tpv_m0p":0.0,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"PIDIO ASESOR","tl":"mjo","name":"Mariana Gonzalez","leads":7,"cont":4,"conv":0,"pend":2,"neg":1,"rech":1,"pot":0,"tpv_m0p":0.0,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"PIDIO ASESOR","tl":"mjo","name":"Rocio Angueira","leads":6,"cont":4,"conv":0,"pend":1,"neg":2,"rech":1,"pot":0,"tpv_m0p":0.0,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"PIDIO ASESOR","tl":"mjo","name":"Soledad Maydana","leads":3,"cont":1,"conv":1,"pend":0,"neg":0,"rech":0,"pot":0,"tpv_m0p":0.0,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"YA ACTIVO","tl":"ag","name":"Alejandro Diaz","leads":3,"cont":1,"conv":1,"pend":0,"neg":0,"rech":0,"pot":0,"tpv_m0p":1356496.17,"tpv_m1":768574.19,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"YA ACTIVO","tl":"ag","name":"Analia Maisonnave","leads":2,"cont":0,"conv":0,"pend":0,"neg":0,"rech":0,"pot":0,"tpv_m0p":0.0,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"YA ACTIVO","tl":"ag","name":"Camila Coca","leads":2,"cont":1,"conv":0,"pend":0,"neg":1,"rech":0,"pot":0,"tpv_m0p":0.0,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"YA ACTIVO","tl":"ag","name":"Diego Moreno","leads":4,"cont":3,"conv":0,"pend":0,"neg":0,"rech":3,"pot":0,"tpv_m0p":0.0,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"YA ACTIVO","tl":"ag","name":"Emanuel Dursi","leads":2,"cont":1,"conv":1,"pend":0,"neg":0,"rech":0,"pot":0,"tpv_m0p":757826.09,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"YA ACTIVO","tl":"ag","name":"Federico Vitabile","leads":3,"cont":2,"conv":0,"pend":0,"neg":1,"rech":1,"pot":0,"tpv_m0p":0.0,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"YA ACTIVO","tl":"ag","name":"Giselda Allende","leads":2,"cont":2,"conv":1,"pend":0,"neg":1,"rech":0,"pot":0,"tpv_m0p":302347.83,"tpv_m1":711674.96,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"YA ACTIVO","tl":"ag","name":"Matias Mesiano","leads":3,"cont":3,"conv":2,"pend":1,"neg":0,"rech":0,"pot":0,"tpv_m0p":1131847.83,"tpv_m1":1617013.43,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"YA ACTIVO","tl":"fq","name":"Azul Pacioni","leads":6,"cont":3,"conv":1,"pend":0,"neg":0,"rech":2,"pot":0,"tpv_m0p":30589.57,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"YA ACTIVO","tl":"fq","name":"Barbara Nuñez","leads":2,"cont":1,"conv":0,"pend":0,"neg":0,"rech":1,"pot":0,"tpv_m0p":0.0,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"YA ACTIVO","tl":"fq","name":"Diana Fraser","leads":2,"cont":0,"conv":0,"pend":0,"neg":0,"rech":0,"pot":0,"tpv_m0p":0.0,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"YA ACTIVO","tl":"fq","name":"Francelys Perez","leads":2,"cont":2,"conv":0,"pend":0,"neg":0,"rech":2,"pot":0,"tpv_m0p":0.0,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"YA ACTIVO","tl":"fq","name":"Joaquin Lescano","leads":1,"cont":0,"conv":0,"pend":0,"neg":0,"rech":0,"pot":0,"tpv_m0p":0.0,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"YA ACTIVO","tl":"fq","name":"Micaela Marsuzi","leads":2,"cont":1,"conv":0,"pend":0,"neg":0,"rech":1,"pot":0,"tpv_m0p":0.0,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"YA ACTIVO","tl":"fq","name":"Sebastian Jansa","leads":6,"cont":2,"conv":1,"pend":0,"neg":1,"rech":0,"pot":0,"tpv_m0p":893478.26,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"YA ACTIVO","tl":"mjo","name":"Agustin Diz","leads":3,"cont":3,"conv":2,"pend":0,"neg":0,"rech":1,"pot":0,"tpv_m0p":781956.52,"tpv_m1":1033800.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"YA ACTIVO","tl":"mjo","name":"Juan Cruz Rial","leads":3,"cont":3,"conv":2,"pend":0,"neg":1,"rech":0,"pot":0,"tpv_m0p":490434.78,"tpv_m1":284000.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"YA ACTIVO","tl":"mjo","name":"Julian Torres","leads":1,"cont":1,"conv":0,"pend":0,"neg":1,"rech":0,"pot":0,"tpv_m0p":0.0,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"YA ACTIVO","tl":"mjo","name":"Manuel Elizarraga","leads":4,"cont":1,"conv":1,"pend":0,"neg":0,"rech":0,"pot":0,"tpv_m0p":667930.43,"tpv_m1":454580.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"YA ACTIVO","tl":"mjo","name":"Mariana Gonzalez","leads":3,"cont":1,"conv":1,"pend":0,"neg":0,"rech":0,"pot":0,"tpv_m0p":0.0,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"YA ACTIVO","tl":"mjo","name":"Rocio Angueira","leads":6,"cont":3,"conv":1,"pend":1,"neg":1,"rech":0,"pot":0,"tpv_m0p":80347.83,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","sub":"YA ACTIVO","tl":"mjo","name":"Soledad Maydana","leads":1,"cont":1,"conv":1,"pend":0,"neg":0,"rech":0,"pot":0,"tpv_m0p":550826.09,"tpv_m1":399700.0,"tpv_inc_pot":0},{"campana":"TOTAL","sub":null,"tl":"ag","name":"Alejandro Diaz","leads":164,"cont":57,"conv":4,"pend":26,"neg":4,"rech":23,"pot":1,"tpv_m0p":5042007.27,"tpv_m1":2779517.49,"tpv_inc_pot":2262489.78},{"campana":"TOTAL","sub":null,"tl":"ag","name":"Analia Maisonnave","leads":153,"cont":92,"conv":1,"pend":13,"neg":1,"rech":34,"pot":1,"tpv_m0p":3493304.35,"tpv_m1":19000.0,"tpv_inc_pot":3474304.35},{"campana":"TOTAL","sub":null,"tl":"ag","name":"Camila Coca","leads":160,"cont":56,"conv":3,"pend":26,"neg":10,"rech":14,"pot":1,"tpv_m0p":6007460.87,"tpv_m1":2018100.0,"tpv_inc_pot":3989360.87},{"campana":"TOTAL","sub":null,"tl":"ag","name":"Catalina Fernandez","leads":148,"cont":45,"conv":4,"pend":14,"neg":3,"rech":24,"pot":0,"tpv_m0p":5764449.13,"tpv_m1":6157848.0,"tpv_inc_pot":0},{"campana":"TOTAL","sub":null,"tl":"ag","name":"Diego Moreno","leads":163,"cont":55,"conv":5,"pend":22,"neg":2,"rech":24,"pot":1,"tpv_m0p":7730852.61,"tpv_m1":4673815.62,"tpv_inc_pot":3057036.99},{"campana":"TOTAL","sub":null,"tl":"ag","name":"Emanuel Dursi","leads":155,"cont":37,"conv":3,"pend":10,"neg":7,"rech":17,"pot":1,"tpv_m0p":16625300.35,"tpv_m1":10970320.63,"tpv_inc_pot":5654979.72},{"campana":"TOTAL","sub":null,"tl":"ag","name":"Federico Vitabile","leads":159,"cont":48,"conv":4,"pend":26,"neg":4,"rech":14,"pot":1,"tpv_m0p":4829533.34,"tpv_m1":3241374.26,"tpv_inc_pot":1588159.08},{"campana":"TOTAL","sub":null,"tl":"ag","name":"Giselda Allende","leads":162,"cont":37,"conv":5,"pend":1,"neg":3,"rech":14,"pot":1,"tpv_m0p":9207806.74,"tpv_m1":2043030.0,"tpv_inc_pot":7164776.74},{"campana":"TOTAL","sub":null,"tl":"ag","name":"Matias Mesiano","leads":154,"cont":51,"conv":6,"pend":17,"neg":2,"rech":25,"pot":1,"tpv_m0p":9177297.14,"tpv_m1":5554716.94,"tpv_inc_pot":3622580.2},{"campana":"TOTAL","sub":null,"tl":"fq","name":"Azul Pacioni","leads":147,"cont":48,"conv":0,"pend":14,"neg":2,"rech":29,"pot":0,"tpv_m0p":0.0,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"TOTAL","sub":null,"tl":"fq","name":"Barbara Nuñez","leads":155,"cont":36,"conv":7,"pend":10,"neg":0,"rech":9,"pot":1,"tpv_m0p":12635026.81,"tpv_m1":9091581.37,"tpv_inc_pot":3543445.44},{"campana":"TOTAL","sub":null,"tl":"fq","name":"Diana Fraser","leads":159,"cont":43,"conv":1,"pend":7,"neg":10,"rech":19,"pot":1,"tpv_m0p":3329599.72,"tpv_m1":78700.0,"tpv_inc_pot":3250899.72},{"campana":"TOTAL","sub":null,"tl":"fq","name":"Francelys Perez","leads":153,"cont":57,"conv":3,"pend":15,"neg":5,"rech":34,"pot":0,"tpv_m0p":285618.72,"tpv_m1":374377.0,"tpv_inc_pot":0},{"campana":"TOTAL","sub":null,"tl":"fq","name":"Joaquin Lescano","leads":142,"cont":46,"conv":2,"pend":6,"neg":5,"rech":29,"pot":0,"tpv_m0p":1139802.65,"tpv_m1":1952079.98,"tpv_inc_pot":0},{"campana":"TOTAL","sub":null,"tl":"fq","name":"Luciana Pisacco","leads":154,"cont":55,"conv":4,"pend":22,"neg":4,"rech":24,"pot":0,"tpv_m0p":5254505.8,"tpv_m1":5727242.4,"tpv_inc_pot":0},{"campana":"TOTAL","sub":null,"tl":"fq","name":"Micaela Marsuzi","leads":150,"cont":55,"conv":2,"pend":13,"neg":2,"rech":39,"pot":1,"tpv_m0p":4221782.7,"tpv_m1":134600.0,"tpv_inc_pot":4087182.7},{"campana":"TOTAL","sub":null,"tl":"fq","name":"Sebastian Jansa","leads":154,"cont":44,"conv":10,"pend":20,"neg":5,"rech":9,"pot":1,"tpv_m0p":59171489.6,"tpv_m1":17927716.69,"tpv_inc_pot":41243772.91},{"campana":"TOTAL","sub":null,"tl":"mjo","name":"Agustin Diz","leads":163,"cont":41,"conv":6,"pend":19,"neg":8,"rech":8,"pot":0,"tpv_m0p":2128744.08,"tpv_m1":2137525.62,"tpv_inc_pot":0},{"campana":"TOTAL","sub":null,"tl":"mjo","name":"Carolina Delgado","leads":158,"cont":38,"conv":6,"pend":4,"neg":4,"rech":24,"pot":1,"tpv_m0p":9790992.52,"tpv_m1":5609539.0,"tpv_inc_pot":4181453.52},{"campana":"TOTAL","sub":null,"tl":"mjo","name":"Juan Cruz Rial","leads":157,"cont":51,"conv":3,"pend":25,"neg":5,"rech":18,"pot":1,"tpv_m0p":8346176.99,"tpv_m1":2688832.2,"tpv_inc_pot":5657344.79},{"campana":"TOTAL","sub":null,"tl":"mjo","name":"Julian Torres","leads":150,"cont":87,"conv":2,"pend":28,"neg":7,"rech":48,"pot":1,"tpv_m0p":6386171.79,"tpv_m1":913317.55,"tpv_inc_pot":5472854.24},{"campana":"TOTAL","sub":null,"tl":"mjo","name":"Manuel Elizarraga","leads":163,"cont":79,"conv":5,"pend":14,"neg":2,"rech":58,"pot":1,"tpv_m0p":15093563.48,"tpv_m1":4537994.0,"tpv_inc_pot":10555569.48},{"campana":"TOTAL","sub":null,"tl":"mjo","name":"Mariana Gonzalez","leads":151,"cont":47,"conv":2,"pend":12,"neg":3,"rech":20,"pot":0,"tpv_m0p":2231244.26,"tpv_m1":2206811.37,"tpv_inc_pot":0},{"campana":"TOTAL","sub":null,"tl":"mjo","name":"Rocio Angueira","leads":158,"cont":62,"conv":3,"pend":30,"neg":15,"rech":15,"pot":0,"tpv_m0p":4866219.1,"tpv_m1":3754226.67,"tpv_inc_pot":0},{"campana":"TOTAL","sub":null,"tl":"mjo","name":"Soledad Maydana","leads":153,"cont":39,"conv":1,"pend":16,"neg":5,"rech":16,"pot":0,"tpv_m0p":0.0,"tpv_m1":0.0,"tpv_inc_pot":0},{"campana":"TOTAL","sub":null,"tl":"sz","name":"Cristina Hsieh","leads":132,"cont":83,"conv":6,"pend":3,"neg":13,"rech":53,"pot":1,"tpv_m0p":17956735.49,"tpv_m1":1336369.96,"tpv_inc_pot":16620365.53},{"campana":"TOTAL","sub":null,"tl":"sz","name":"Sofia Zhuang","leads":44,"cont":18,"conv":4,"pend":0,"neg":3,"rech":6,"pot":1,"tpv_m0p":10137678.26,"tpv_m1":4229188.0,"tpv_inc_pot":5908490.26}];
-/* %%TPV_DATA_LINE%% */var TPV_DATA=[{"campana":"CALENTAMIENTO","tl":"ag","name":"Alejandro Diaz","conv":6,"tpv_m1":8069120.57,"tpv_m0":6424345.13,"tpv_m0p":8379580.6,"pot":0,"tpv_inc_pot":0},{"campana":"CALENTAMIENTO","tl":"ag","name":"Analia Maisonnave","conv":1,"tpv_m1":0.0,"tpv_m0":0.0,"tpv_m0p":0.0,"pot":0,"tpv_inc_pot":0},{"campana":"CALENTAMIENTO","tl":"ag","name":"Camila Coca","conv":2,"tpv_m1":5328857.0,"tpv_m0":4766540.0,"tpv_m0p":6217226.09,"pot":0,"tpv_inc_pot":0},{"campana":"CALENTAMIENTO","tl":"ag","name":"Catalina Fernandez","conv":3,"tpv_m1":2484800.0,"tpv_m0":2891545.0,"tpv_m0p":3771580.43,"pot":1,"tpv_inc_pot":1286780.43},{"campana":"CALENTAMIENTO","tl":"ag","name":"Diego Moreno","conv":3,"tpv_m1":5123253.02,"tpv_m0":4170371.27,"tpv_m0p":5439614.7,"pot":0,"tpv_inc_pot":0},{"campana":"CALENTAMIENTO","tl":"ag","name":"Emanuel Dursi","conv":5,"tpv_m1":7359814.5,"tpv_m0":9547354.71,"tpv_m0p":12453071.36,"pot":1,"tpv_inc_pot":5093256.86},{"campana":"CALENTAMIENTO","tl":"ag","name":"Federico Vitabile","conv":2,"tpv_m1":927326.0,"tpv_m0":10269012.5,"tpv_m0p":13394364.13,"pot":1,"tpv_inc_pot":12467038.13},{"campana":"CALENTAMIENTO","tl":"ag","name":"Giselda Allende","conv":3,"tpv_m1":11536794.5,"tpv_m0":16625744.0,"tpv_m0p":21685753.04,"pot":1,"tpv_inc_pot":10148958.54},{"campana":"CALENTAMIENTO","tl":"ag","name":"Matias Mesiano","conv":2,"tpv_m1":220100.0,"tpv_m0":1486615.0,"tpv_m0p":1939063.04,"pot":0,"tpv_inc_pot":0},{"campana":"CALENTAMIENTO","tl":"fq","name":"Azul Pacioni","conv":3,"tpv_m1":6356016.41,"tpv_m0":2522017.0,"tpv_m0p":3289587.39,"pot":0,"tpv_inc_pot":0},{"campana":"CALENTAMIENTO","tl":"fq","name":"Barbara Nuñez","conv":7,"tpv_m1":7406661.92,"tpv_m0":7692970.34,"tpv_m0p":10034309.14,"pot":1,"tpv_inc_pot":2627647.22},{"campana":"CALENTAMIENTO","tl":"fq","name":"Diana Fraser","conv":1,"tpv_m1":3452036.57,"tpv_m0":5654230.29,"tpv_m0p":7375082.99,"pot":1,"tpv_inc_pot":3923046.42},{"campana":"CALENTAMIENTO","tl":"fq","name":"Francelys Perez","conv":4,"tpv_m1":2005300.0,"tpv_m0":546000.0,"tpv_m0p":712173.91,"pot":0,"tpv_inc_pot":0},{"campana":"CALENTAMIENTO","tl":"fq","name":"Joaquin Lescano","conv":1,"tpv_m1":5535675.85,"tpv_m0":2634209.11,"tpv_m0p":3435924.93,"pot":0,"tpv_inc_pot":0},{"campana":"CALENTAMIENTO","tl":"fq","name":"Luciana Pisacco","conv":0,"tpv_m1":0.0,"tpv_m0":0.0,"tpv_m0p":0.0,"pot":0,"tpv_inc_pot":0},{"campana":"CALENTAMIENTO","tl":"fq","name":"Micaela Marsuzi","conv":3,"tpv_m1":6814728.0,"tpv_m0":5357350.0,"tpv_m0p":6987847.83,"pot":0,"tpv_inc_pot":0},{"campana":"CALENTAMIENTO","tl":"fq","name":"Sebastian Jansa","conv":5,"tpv_m1":12189478.33,"tpv_m0":7197488.0,"tpv_m0p":9388027.83,"pot":0,"tpv_inc_pot":0},{"campana":"CALENTAMIENTO","tl":"mjo","name":"Agustin Diz","conv":0,"tpv_m1":0.0,"tpv_m0":0.0,"tpv_m0p":0.0,"pot":0,"tpv_inc_pot":0},{"campana":"CALENTAMIENTO","tl":"mjo","name":"Carolina Delgado","conv":4,"tpv_m1":2693748.0,"tpv_m0":1589950.0,"tpv_m0p":2073847.83,"pot":0,"tpv_inc_pot":0},{"campana":"CALENTAMIENTO","tl":"mjo","name":"Juan Cruz Rial","conv":3,"tpv_m1":1585852.0,"tpv_m0":2194080.0,"tpv_m0p":2861843.48,"pot":1,"tpv_inc_pot":1275991.48},{"campana":"CALENTAMIENTO","tl":"mjo","name":"Julian Torres","conv":2,"tpv_m1":3464595.3,"tpv_m0":4578148.99,"tpv_m0p":5971498.68,"pot":1,"tpv_inc_pot":2506903.38},{"campana":"CALENTAMIENTO","tl":"mjo","name":"Manuel Elizarraga","conv":2,"tpv_m1":3438640.0,"tpv_m0":3005280.0,"tpv_m0p":3919930.43,"pot":0,"tpv_inc_pot":0},{"campana":"CALENTAMIENTO","tl":"mjo","name":"Mariana Gonzalez","conv":4,"tpv_m1":75500.0,"tpv_m0":4684139.0,"tpv_m0p":6109746.52,"pot":1,"tpv_inc_pot":6034246.52},{"campana":"CALENTAMIENTO","tl":"mjo","name":"Rocio Angueira","conv":1,"tpv_m1":295100.0,"tpv_m0":245532.19,"tpv_m0p":320259.38,"pot":0,"tpv_inc_pot":0},{"campana":"CALENTAMIENTO","tl":"mjo","name":"Soledad Maydana","conv":4,"tpv_m1":1688925.45,"tpv_m0":1231200.0,"tpv_m0p":1605913.04,"pot":0,"tpv_inc_pot":0},{"campana":"CALENTAMIENTO","tl":"sz","name":"Cristina Hsieh","conv":0,"tpv_m1":0.0,"tpv_m0":0.0,"tpv_m0p":0.0,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"ag","name":"Alejandro Diaz","conv":1,"tpv_m1":131436.59,"tpv_m0":254747.04,"tpv_m0p":332278.75,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"ag","name":"Analia Maisonnave","conv":2,"tpv_m1":0.0,"tpv_m0":12600245.0,"tpv_m0p":16435102.17,"pot":1,"tpv_inc_pot":16435102.17},{"campana":"PROMO CUOTAS","tl":"ag","name":"Camila Coca","conv":1,"tpv_m1":375400.0,"tpv_m0":7100708.0,"tpv_m0p":9261793.04,"pot":1,"tpv_inc_pot":8886393.04},{"campana":"PROMO CUOTAS","tl":"ag","name":"Catalina Fernandez","conv":0,"tpv_m1":0.0,"tpv_m0":0.0,"tpv_m0p":0.0,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"ag","name":"Diego Moreno","conv":0,"tpv_m1":0.0,"tpv_m0":0.0,"tpv_m0p":0.0,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"ag","name":"Emanuel Dursi","conv":1,"tpv_m1":0.0,"tpv_m0":0.0,"tpv_m0p":0.0,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"ag","name":"Federico Vitabile","conv":1,"tpv_m1":45264.8,"tpv_m0":50753.89,"tpv_m0p":66200.73,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"ag","name":"Giselda Allende","conv":1,"tpv_m1":0.0,"tpv_m0":0.0,"tpv_m0p":0.0,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"ag","name":"Matias Mesiano","conv":1,"tpv_m1":60000.0,"tpv_m0":570500.0,"tpv_m0p":744130.43,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"fq","name":"Azul Pacioni","conv":0,"tpv_m1":0.0,"tpv_m0":0.0,"tpv_m0p":0.0,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"fq","name":"Barbara Nuñez","conv":1,"tpv_m1":0.0,"tpv_m0":36000.0,"tpv_m0p":46956.52,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"fq","name":"Diana Fraser","conv":0,"tpv_m1":0.0,"tpv_m0":0.0,"tpv_m0p":0.0,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"fq","name":"Francelys Perez","conv":1,"tpv_m1":0.0,"tpv_m0":0.0,"tpv_m0p":0.0,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"fq","name":"Joaquin Lescano","conv":1,"tpv_m1":325000.0,"tpv_m0":774200.0,"tpv_m0p":1009826.09,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"fq","name":"Luciana Pisacco","conv":1,"tpv_m1":0.0,"tpv_m0":3822211.04,"tpv_m0p":4985492.66,"pot":1,"tpv_inc_pot":4985492.66},{"campana":"PROMO CUOTAS","tl":"fq","name":"Micaela Marsuzi","conv":0,"tpv_m1":0.0,"tpv_m0":0.0,"tpv_m0p":0.0,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"fq","name":"Sebastian Jansa","conv":1,"tpv_m1":230770.0,"tpv_m0":79380.0,"tpv_m0p":103539.13,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"mjo","name":"Agustin Diz","conv":4,"tpv_m1":408466.34,"tpv_m0":3481520.54,"tpv_m0p":4541113.75,"pot":1,"tpv_inc_pot":4132647.41},{"campana":"PROMO CUOTAS","tl":"mjo","name":"Carolina Delgado","conv":3,"tpv_m1":290600.0,"tpv_m0":1954850.0,"tpv_m0p":2549804.35,"pot":1,"tpv_inc_pot":2259204.35},{"campana":"PROMO CUOTAS","tl":"mjo","name":"Juan Cruz Rial","conv":2,"tpv_m1":506226.8,"tpv_m0":2177121.2,"tpv_m0p":2839723.3,"pot":1,"tpv_inc_pot":2333496.5},{"campana":"PROMO CUOTAS","tl":"mjo","name":"Julian Torres","conv":0,"tpv_m1":0.0,"tpv_m0":0.0,"tpv_m0p":0.0,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"mjo","name":"Manuel Elizarraga","conv":2,"tpv_m1":143577.0,"tpv_m0":483620.0,"tpv_m0p":630808.7,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"mjo","name":"Mariana Gonzalez","conv":4,"tpv_m1":340753.0,"tpv_m0":1882670.0,"tpv_m0p":2455656.52,"pot":1,"tpv_inc_pot":2114903.52},{"campana":"PROMO CUOTAS","tl":"mjo","name":"Rocio Angueira","conv":0,"tpv_m1":0.0,"tpv_m0":0.0,"tpv_m0p":0.0,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"mjo","name":"Soledad Maydana","conv":0,"tpv_m1":0.0,"tpv_m0":0.0,"tpv_m0p":0.0,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"sz","name":"Cristina Hsieh","conv":0,"tpv_m1":0.0,"tpv_m0":0.0,"tpv_m0p":0.0,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"sz","name":"Sofia Zhuang","conv":0,"tpv_m1":0.0,"tpv_m0":0.0,"tpv_m0p":0.0,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"ag","name":"Alejandro Diaz","conv":0,"tpv_m1":0.0,"tpv_m0":0.0,"tpv_m0p":0.0,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"ag","name":"Analia Maisonnave","conv":0,"tpv_m1":0.0,"tpv_m0":0.0,"tpv_m0p":0.0,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"ag","name":"Camila Coca","conv":0,"tpv_m1":0.0,"tpv_m0":0.0,"tpv_m0p":0.0,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"ag","name":"Catalina Fernandez","conv":0,"tpv_m1":0.0,"tpv_m0":0.0,"tpv_m0p":0.0,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"ag","name":"Diego Moreno","conv":1,"tpv_m1":10000.0,"tpv_m0":0.0,"tpv_m0p":0.0,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"ag","name":"Emanuel Dursi","conv":0,"tpv_m1":0.0,"tpv_m0":0.0,"tpv_m0p":0.0,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"ag","name":"Federico Vitabile","conv":0,"tpv_m1":0.0,"tpv_m0":0.0,"tpv_m0p":0.0,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"ag","name":"Giselda Allende","conv":1,"tpv_m1":270850.0,"tpv_m0":2461832.0,"tpv_m0p":3211085.22,"pot":1,"tpv_inc_pot":2940235.22},{"campana":"PROMO CUOTAS","tl":"ag","name":"Matias Mesiano","conv":0,"tpv_m1":0.0,"tpv_m0":0.0,"tpv_m0p":0.0,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"fq","name":"Azul Pacioni","conv":0,"tpv_m1":0.0,"tpv_m0":0.0,"tpv_m0p":0.0,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"fq","name":"Barbara Nuñez","conv":1,"tpv_m1":808332.0,"tpv_m0":945482.0,"tpv_m0p":1233237.39,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"fq","name":"Diana Fraser","conv":0,"tpv_m1":0.0,"tpv_m0":0.0,"tpv_m0p":0.0,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"fq","name":"Francelys Perez","conv":0,"tpv_m1":0.0,"tpv_m0":0.0,"tpv_m0p":0.0,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"fq","name":"Joaquin Lescano","conv":1,"tpv_m1":620075.0,"tpv_m0":1142255.0,"tpv_m0p":1489897.83,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"fq","name":"Luciana Pisacco","conv":0,"tpv_m1":0.0,"tpv_m0":0.0,"tpv_m0p":0.0,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"fq","name":"Micaela Marsuzi","conv":0,"tpv_m1":0.0,"tpv_m0":0.0,"tpv_m0p":0.0,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"fq","name":"Sebastian Jansa","conv":0,"tpv_m1":0.0,"tpv_m0":0.0,"tpv_m0p":0.0,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"mjo","name":"Agustin Diz","conv":0,"tpv_m1":0.0,"tpv_m0":0.0,"tpv_m0p":0.0,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"mjo","name":"Carolina Delgado","conv":0,"tpv_m1":0.0,"tpv_m0":0.0,"tpv_m0p":0.0,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"mjo","name":"Juan Cruz Rial","conv":1,"tpv_m1":0.0,"tpv_m0":0.0,"tpv_m0p":0.0,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"mjo","name":"Julian Torres","conv":1,"tpv_m1":0.0,"tpv_m0":637000.0,"tpv_m0p":830869.57,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"mjo","name":"Manuel Elizarraga","conv":0,"tpv_m1":0.0,"tpv_m0":0.0,"tpv_m0p":0.0,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"mjo","name":"Mariana Gonzalez","conv":0,"tpv_m1":0.0,"tpv_m0":0.0,"tpv_m0p":0.0,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"mjo","name":"Rocio Angueira","conv":0,"tpv_m1":0.0,"tpv_m0":0.0,"tpv_m0p":0.0,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"mjo","name":"Soledad Maydana","conv":1,"tpv_m1":0.0,"tpv_m0":0.0,"tpv_m0p":0.0,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"ag","name":"Alejandro Diaz","conv":1,"tpv_m1":768574.19,"tpv_m0":1039980.4,"tpv_m0p":1356496.17,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"ag","name":"Analia Maisonnave","conv":0,"tpv_m1":0.0,"tpv_m0":0.0,"tpv_m0p":0.0,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"ag","name":"Camila Coca","conv":0,"tpv_m1":0.0,"tpv_m0":0.0,"tpv_m0p":0.0,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"ag","name":"Diego Moreno","conv":0,"tpv_m1":0.0,"tpv_m0":0.0,"tpv_m0p":0.0,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"ag","name":"Emanuel Dursi","conv":1,"tpv_m1":0.0,"tpv_m0":581000.0,"tpv_m0p":757826.09,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"ag","name":"Federico Vitabile","conv":0,"tpv_m1":0.0,"tpv_m0":0.0,"tpv_m0p":0.0,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"ag","name":"Giselda Allende","conv":1,"tpv_m1":711674.96,"tpv_m0":231800.0,"tpv_m0p":302347.83,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"ag","name":"Matias Mesiano","conv":2,"tpv_m1":1617013.43,"tpv_m0":867750.0,"tpv_m0p":1131847.83,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"fq","name":"Azul Pacioni","conv":1,"tpv_m1":0.0,"tpv_m0":23452.0,"tpv_m0p":30589.57,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"fq","name":"Barbara Nuñez","conv":0,"tpv_m1":0.0,"tpv_m0":0.0,"tpv_m0p":0.0,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"fq","name":"Diana Fraser","conv":0,"tpv_m1":0.0,"tpv_m0":0.0,"tpv_m0p":0.0,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"fq","name":"Francelys Perez","conv":0,"tpv_m1":0.0,"tpv_m0":0.0,"tpv_m0p":0.0,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"fq","name":"Joaquin Lescano","conv":0,"tpv_m1":0.0,"tpv_m0":0.0,"tpv_m0p":0.0,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"fq","name":"Micaela Marsuzi","conv":0,"tpv_m1":0.0,"tpv_m0":0.0,"tpv_m0p":0.0,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"fq","name":"Sebastian Jansa","conv":1,"tpv_m1":0.0,"tpv_m0":685000.0,"tpv_m0p":893478.26,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"mjo","name":"Agustin Diz","conv":2,"tpv_m1":1033800.0,"tpv_m0":599500.0,"tpv_m0p":781956.52,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"mjo","name":"Juan Cruz Rial","conv":2,"tpv_m1":284000.0,"tpv_m0":376000.0,"tpv_m0p":490434.78,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"mjo","name":"Julian Torres","conv":0,"tpv_m1":0.0,"tpv_m0":0.0,"tpv_m0p":0.0,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"mjo","name":"Manuel Elizarraga","conv":1,"tpv_m1":454580.0,"tpv_m0":512080.0,"tpv_m0p":667930.43,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"mjo","name":"Mariana Gonzalez","conv":1,"tpv_m1":0.0,"tpv_m0":0.0,"tpv_m0p":0.0,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"mjo","name":"Rocio Angueira","conv":1,"tpv_m1":0.0,"tpv_m0":61600.0,"tpv_m0p":80347.83,"pot":0,"tpv_inc_pot":0},{"campana":"PROMO CUOTAS","tl":"mjo","name":"Soledad Maydana","conv":1,"tpv_m1":399700.0,"tpv_m0":422300.0,"tpv_m0p":550826.09,"pot":0,"tpv_inc_pot":0},{"campana":"TOTAL","tl":"ag","name":"Alejandro Diaz","conv":4,"tpv_m1":2779517.49,"tpv_m0":3865538.91,"tpv_m0p":5042007.27,"pot":1,"tpv_inc_pot":2262489.78},{"campana":"TOTAL","tl":"ag","name":"Analia Maisonnave","conv":1,"tpv_m1":19000.0,"tpv_m0":2678200.0,"tpv_m0p":3493304.35,"pot":1,"tpv_inc_pot":3474304.35},{"campana":"TOTAL","tl":"ag","name":"Camila Coca","conv":3,"tpv_m1":2018100.0,"tpv_m0":4605720.0,"tpv_m0p":6007460.87,"pot":1,"tpv_inc_pot":3989360.87},{"campana":"TOTAL","tl":"ag","name":"Catalina Fernandez","conv":4,"tpv_m1":6157848.0,"tpv_m0":4419411.0,"tpv_m0p":5764449.13,"pot":0,"tpv_inc_pot":0},{"campana":"TOTAL","tl":"ag","name":"Diego Moreno","conv":5,"tpv_m1":4673815.62,"tpv_m0":5926987.0,"tpv_m0p":7730852.61,"pot":1,"tpv_inc_pot":3057036.99},{"campana":"TOTAL","tl":"ag","name":"Emanuel Dursi","conv":3,"tpv_m1":10970320.63,"tpv_m0":12746063.6,"tpv_m0p":16625300.35,"pot":1,"tpv_inc_pot":5654979.72},{"campana":"TOTAL","tl":"ag","name":"Federico Vitabile","conv":4,"tpv_m1":3241374.26,"tpv_m0":3702642.23,"tpv_m0p":4829533.34,"pot":1,"tpv_inc_pot":1588159.08},{"campana":"TOTAL","tl":"ag","name":"Giselda Allende","conv":5,"tpv_m1":2043030.0,"tpv_m0":7059318.5,"tpv_m0p":9207806.74,"pot":1,"tpv_inc_pot":7164776.74},{"campana":"TOTAL","tl":"ag","name":"Matias Mesiano","conv":6,"tpv_m1":5554716.94,"tpv_m0":7035927.81,"tpv_m0p":9177297.14,"pot":1,"tpv_inc_pot":3622580.2},{"campana":"TOTAL","tl":"fq","name":"Azul Pacioni","conv":0,"tpv_m1":0.0,"tpv_m0":0.0,"tpv_m0p":0.0,"pot":0,"tpv_inc_pot":0},{"campana":"TOTAL","tl":"fq","name":"Barbara Nuñez","conv":7,"tpv_m1":9091581.37,"tpv_m0":9686853.89,"tpv_m0p":12635026.81,"pot":1,"tpv_inc_pot":3543445.44},{"campana":"TOTAL","tl":"fq","name":"Diana Fraser","conv":1,"tpv_m1":78700.0,"tpv_m0":2552693.12,"tpv_m0p":3329599.72,"pot":1,"tpv_inc_pot":3250899.72},{"campana":"TOTAL","tl":"fq","name":"Francelys Perez","conv":3,"tpv_m1":374377.0,"tpv_m0":218974.35,"tpv_m0p":285618.72,"pot":0,"tpv_inc_pot":0},{"campana":"TOTAL","tl":"fq","name":"Joaquin Lescano","conv":2,"tpv_m1":1952079.98,"tpv_m0":873848.7,"tpv_m0p":1139802.65,"pot":0,"tpv_inc_pot":0},{"campana":"TOTAL","tl":"fq","name":"Luciana Pisacco","conv":4,"tpv_m1":5727242.4,"tpv_m0":4028454.45,"tpv_m0p":5254505.8,"pot":0,"tpv_inc_pot":0},{"campana":"TOTAL","tl":"fq","name":"Micaela Marsuzi","conv":2,"tpv_m1":134600.0,"tpv_m0":3236700.07,"tpv_m0p":4221782.7,"pot":1,"tpv_inc_pot":4087182.7},{"campana":"TOTAL","tl":"fq","name":"Sebastian Jansa","conv":10,"tpv_m1":17927716.69,"tpv_m0":45364808.69,"tpv_m0p":59171489.6,"pot":1,"tpv_inc_pot":41243772.91},{"campana":"TOTAL","tl":"mjo","name":"Agustin Diz","conv":6,"tpv_m1":2137525.62,"tpv_m0":1632037.13,"tpv_m0p":2128744.08,"pot":0,"tpv_inc_pot":0},{"campana":"TOTAL","tl":"mjo","name":"Carolina Delgado","conv":6,"tpv_m1":5609539.0,"tpv_m0":7506427.6,"tpv_m0p":9790992.52,"pot":1,"tpv_inc_pot":4181453.52},{"campana":"TOTAL","tl":"mjo","name":"Juan Cruz Rial","conv":3,"tpv_m1":2688832.2,"tpv_m0":6398735.69,"tpv_m0p":8346176.99,"pot":1,"tpv_inc_pot":5657344.79},{"campana":"TOTAL","tl":"mjo","name":"Julian Torres","conv":2,"tpv_m1":913317.55,"tpv_m0":4896065.04,"tpv_m0p":6386171.79,"pot":1,"tpv_inc_pot":5472854.24},{"campana":"TOTAL","tl":"mjo","name":"Manuel Elizarraga","conv":5,"tpv_m1":4537994.0,"tpv_m0":11571732.0,"tpv_m0p":15093563.48,"pot":1,"tpv_inc_pot":10555569.48},{"campana":"TOTAL","tl":"mjo","name":"Mariana Gonzalez","conv":2,"tpv_m1":2206811.37,"tpv_m0":1710620.6,"tpv_m0p":2231244.26,"pot":0,"tpv_inc_pot":0},{"campana":"TOTAL","tl":"mjo","name":"Rocio Angueira","conv":3,"tpv_m1":3754226.67,"tpv_m0":3730767.98,"tpv_m0p":4866219.1,"pot":0,"tpv_inc_pot":0},{"campana":"TOTAL","tl":"mjo","name":"Soledad Maydana","conv":1,"tpv_m1":0.0,"tpv_m0":0.0,"tpv_m0p":0.0,"pot":0,"tpv_inc_pot":0},{"campana":"TOTAL","tl":"sz","name":"Cristina Hsieh","conv":6,"tpv_m1":1336369.96,"tpv_m0":13766830.54,"tpv_m0p":17956735.49,"pot":1,"tpv_inc_pot":16620365.53},{"campana":"TOTAL","tl":"sz","name":"Sofia Zhuang","conv":4,"tpv_m1":4229188.0,"tpv_m0":7772220.0,"tpv_m0p":10137678.26,"pot":1,"tpv_inc_pot":5908490.26}];
+/* %%UPDATED%% */var UPDATED_FUNNEL='- (ejecutar actualizar_dashboard.py)';
+/* %%DATA_LINE%% */var DATA=[];
+/* %%TPV_DATA_LINE%% */var TPV_DATA=[];
+/* %%HIST_UPDATED%% */var UPDATED_HIST='23/04/2026 11:45';
+/* %%HIST_DATA_LINE%% */var DATA_HIST=[{"mes":202511,"dh":19,"tl":"ag","name":"Alejandro Diaz","leads":138,"cont":59,"conv":1,"rech":16,"neg":3,"pend":40,"pot":0},{"mes":202511,"dh":19,"tl":"ag","name":"Camila Coca","leads":122,"cont":61,"conv":2,"rech":19,"neg":6,"pend":30,"pot":0},{"mes":202511,"dh":19,"tl":"ag","name":"Catalina Fernandez","leads":139,"cont":68,"conv":6,"rech":48,"neg":4,"pend":10,"pot":2},{"mes":202511,"dh":19,"tl":"ag","name":"Diego Moreno","leads":128,"cont":56,"conv":4,"rech":34,"neg":6,"pend":13,"pot":0},{"mes":202511,"dh":19,"tl":"ag","name":"Emanuel Dursi","leads":127,"cont":58,"conv":3,"rech":16,"neg":4,"pend":34,"pot":2},{"mes":202511,"dh":19,"tl":"ag","name":"Federico Vitabile","leads":130,"cont":76,"conv":9,"rech":29,"neg":13,"pend":27,"pot":3},{"mes":202511,"dh":19,"tl":"ag","name":"Ignacio Arias","leads":126,"cont":31,"conv":0,"rech":19,"neg":2,"pend":10,"pot":0},{"mes":202511,"dh":19,"tl":"ag","name":"Matias Mesiano","leads":135,"cont":69,"conv":2,"rech":28,"neg":7,"pend":32,"pot":1},{"mes":202511,"dh":19,"tl":"mjo","name":"Agustin Diz","leads":150,"cont":69,"conv":7,"rech":28,"neg":7,"pend":27,"pot":4},{"mes":202511,"dh":19,"tl":"mjo","name":"Carolina Delgado","leads":137,"cont":97,"conv":6,"rech":81,"neg":7,"pend":3,"pot":4},{"mes":202511,"dh":19,"tl":"mjo","name":"Evelyn Albarracin","leads":128,"cont":64,"conv":5,"rech":20,"neg":7,"pend":32,"pot":3},{"mes":202511,"dh":19,"tl":"mjo","name":"Juan Cruz Rial","leads":122,"cont":98,"conv":5,"rech":59,"neg":6,"pend":28,"pot":2},{"mes":202511,"dh":19,"tl":"mjo","name":"Manuel Elizarraga","leads":125,"cont":91,"conv":4,"rech":79,"neg":5,"pend":3,"pot":2},{"mes":202511,"dh":19,"tl":"mjo","name":"Manuel Uranga","leads":129,"cont":80,"conv":4,"rech":55,"neg":4,"pend":19,"pot":2},{"mes":202511,"dh":19,"tl":"mjo","name":"Rocio Gonzalez","leads":124,"cont":81,"conv":2,"rech":55,"neg":5,"pend":10,"pot":0},{"mes":202511,"dh":19,"tl":"mjo","name":"Soledad Maydana","leads":114,"cont":73,"conv":2,"rech":51,"neg":5,"pend":13,"pot":1},{"mes":202512,"dh":21,"tl":"ag","name":"Alejandro Diaz","leads":183,"cont":75,"conv":5,"rech":22,"neg":2,"pend":41,"pot":2},{"mes":202512,"dh":21,"tl":"ag","name":"Camila Coca","leads":190,"cont":47,"conv":5,"rech":15,"neg":7,"pend":15,"pot":2},{"mes":202512,"dh":21,"tl":"ag","name":"Catalina Fernandez","leads":193,"cont":137,"conv":10,"rech":94,"neg":16,"pend":18,"pot":3},{"mes":202512,"dh":21,"tl":"ag","name":"Diego Moreno","leads":192,"cont":72,"conv":4,"rech":33,"neg":5,"pend":20,"pot":2},{"mes":202512,"dh":21,"tl":"ag","name":"Emanuel Dursi","leads":194,"cont":79,"conv":6,"rech":30,"neg":11,"pend":32,"pot":2},{"mes":202512,"dh":21,"tl":"ag","name":"Federico Vitabile","leads":201,"cont":95,"conv":10,"rech":26,"neg":9,"pend":41,"pot":4},{"mes":202512,"dh":21,"tl":"ag","name":"Ignacio Arias","leads":197,"cont":57,"conv":7,"rech":18,"neg":5,"pend":25,"pot":2},{"mes":202512,"dh":21,"tl":"ag","name":"Matias Mesiano","leads":196,"cont":38,"conv":3,"rech":16,"neg":5,"pend":14,"pot":2},{"mes":202512,"dh":21,"tl":"mjo","name":"Agustin Diz","leads":195,"cont":62,"conv":3,"rech":23,"neg":14,"pend":23,"pot":1},{"mes":202512,"dh":21,"tl":"mjo","name":"Carolina Delgado","leads":196,"cont":113,"conv":11,"rech":66,"neg":13,"pend":21,"pot":4},{"mes":202512,"dh":21,"tl":"mjo","name":"Evelyn Albarracin","leads":197,"cont":75,"conv":4,"rech":27,"neg":10,"pend":34,"pot":1},{"mes":202512,"dh":21,"tl":"mjo","name":"Juan Cruz Rial","leads":194,"cont":68,"conv":9,"rech":35,"neg":11,"pend":33,"pot":4},{"mes":202512,"dh":21,"tl":"mjo","name":"Manuel Elizarraga","leads":185,"cont":130,"conv":9,"rech":80,"neg":12,"pend":28,"pot":7},{"mes":202512,"dh":21,"tl":"mjo","name":"Manuel Uranga","leads":185,"cont":93,"conv":6,"rech":60,"neg":6,"pend":21,"pot":1},{"mes":202512,"dh":21,"tl":"mjo","name":"Rocio Gonzalez","leads":189,"cont":109,"conv":6,"rech":56,"neg":10,"pend":23,"pot":3},{"mes":202512,"dh":21,"tl":"mjo","name":"Soledad Maydana","leads":188,"cont":137,"conv":12,"rech":79,"neg":11,"pend":23,"pot":5},{"mes":202601,"dh":21,"tl":"ag","name":"Alejandro Diaz","leads":101,"cont":54,"conv":10,"rech":25,"neg":6,"pend":13,"pot":3},{"mes":202601,"dh":21,"tl":"ag","name":"Barbara Diaz","leads":102,"cont":54,"conv":8,"rech":25,"neg":4,"pend":17,"pot":3},{"mes":202601,"dh":21,"tl":"ag","name":"Camila Coca","leads":103,"cont":57,"conv":9,"rech":27,"neg":6,"pend":14,"pot":1},{"mes":202601,"dh":21,"tl":"ag","name":"Catalina Fernandez","leads":136,"cont":104,"conv":9,"rech":65,"neg":8,"pend":24,"pot":2},{"mes":202601,"dh":21,"tl":"ag","name":"Diego Moreno","leads":135,"cont":77,"conv":7,"rech":48,"neg":6,"pend":15,"pot":1},{"mes":202601,"dh":21,"tl":"ag","name":"Emanuel Dursi","leads":113,"cont":71,"conv":7,"rech":30,"neg":8,"pend":25,"pot":4},{"mes":202601,"dh":21,"tl":"ag","name":"Federico Vitabile","leads":139,"cont":99,"conv":10,"rech":45,"neg":4,"pend":40,"pot":2},{"mes":202601,"dh":21,"tl":"ag","name":"Giselda Allende","leads":104,"cont":63,"conv":6,"rech":42,"neg":3,"pend":12,"pot":2},{"mes":202601,"dh":21,"tl":"ag","name":"Ignacio Arias","leads":195,"cont":73,"conv":3,"rech":33,"neg":5,"pend":30,"pot":1},{"mes":202601,"dh":21,"tl":"ag","name":"Matias Mesiano","leads":136,"cont":94,"conv":6,"rech":49,"neg":5,"pend":34,"pot":1},{"mes":202601,"dh":21,"tl":"fq","name":"Barbara Nuñez","leads":134,"cont":96,"conv":5,"rech":76,"neg":4,"pend":11,"pot":2},{"mes":202601,"dh":21,"tl":"fq","name":"Diana Fraser","leads":101,"cont":67,"conv":7,"rech":50,"neg":4,"pend":2,"pot":4},{"mes":202601,"dh":21,"tl":"fq","name":"Francelys Perez","leads":99,"cont":66,"conv":3,"rech":42,"neg":2,"pend":19,"pot":1},{"mes":202601,"dh":21,"tl":"fq","name":"Luciana Pisacco","leads":98,"cont":69,"conv":2,"rech":46,"neg":1,"pend":17,"pot":0},{"mes":202601,"dh":21,"tl":"fq","name":"Niurka Pinzon","leads":96,"cont":66,"conv":4,"rech":42,"neg":1,"pend":19,"pot":1},{"mes":202601,"dh":21,"tl":"fq","name":"Sebastian Jansa","leads":97,"cont":70,"conv":7,"rech":49,"neg":4,"pend":10,"pot":3},{"mes":202601,"dh":21,"tl":"mjo","name":"Agustin Diz","leads":109,"cont":59,"conv":6,"rech":24,"neg":9,"pend":20,"pot":3},{"mes":202601,"dh":21,"tl":"mjo","name":"Carolina Delgado","leads":169,"cont":123,"conv":9,"rech":86,"neg":12,"pend":16,"pot":1},{"mes":202601,"dh":21,"tl":"mjo","name":"Evelyn Albarracin","leads":124,"cont":94,"conv":6,"rech":45,"neg":5,"pend":37,"pot":3},{"mes":202601,"dh":21,"tl":"mjo","name":"Juan Cruz Rial","leads":115,"cont":90,"conv":7,"rech":49,"neg":7,"pend":27,"pot":4},{"mes":202601,"dh":21,"tl":"mjo","name":"Manuel Elizarraga","leads":157,"cont":122,"conv":8,"rech":81,"neg":9,"pend":24,"pot":6},{"mes":202601,"dh":21,"tl":"mjo","name":"Manuel Uranga","leads":195,"cont":111,"conv":6,"rech":79,"neg":7,"pend":18,"pot":3},{"mes":202601,"dh":21,"tl":"mjo","name":"Mariana Gonzalez","leads":105,"cont":66,"conv":1,"rech":29,"neg":2,"pend":31,"pot":1},{"mes":202601,"dh":21,"tl":"mjo","name":"Nelson Salas","leads":94,"cont":50,"conv":3,"rech":32,"neg":3,"pend":14,"pot":2},{"mes":202601,"dh":21,"tl":"mjo","name":"Rocio Gonzalez","leads":127,"cont":73,"conv":4,"rech":45,"neg":4,"pend":19,"pot":2},{"mes":202601,"dh":21,"tl":"mjo","name":"Soledad Maydana","leads":131,"cont":99,"conv":6,"rech":60,"neg":9,"pend":16,"pot":1},{"mes":202602,"dh":18,"tl":"ag","name":"Alejandro Diaz","leads":147,"cont":65,"conv":2,"rech":35,"neg":5,"pend":23,"pot":0},{"mes":202602,"dh":18,"tl":"ag","name":"Barbara Diaz","leads":161,"cont":76,"conv":2,"rech":58,"neg":5,"pend":12,"pot":0},{"mes":202602,"dh":18,"tl":"ag","name":"Camila Coca","leads":146,"cont":58,"conv":7,"rech":16,"neg":10,"pend":17,"pot":0},{"mes":202602,"dh":18,"tl":"ag","name":"Catalina Fernandez","leads":107,"cont":81,"conv":4,"rech":51,"neg":13,"pend":13,"pot":0},{"mes":202602,"dh":18,"tl":"ag","name":"Diego Moreno","leads":152,"cont":55,"conv":3,"rech":22,"neg":1,"pend":18,"pot":1},{"mes":202602,"dh":18,"tl":"ag","name":"Emanuel Dursi","leads":148,"cont":65,"conv":7,"rech":29,"neg":3,"pend":26,"pot":3},{"mes":202602,"dh":18,"tl":"ag","name":"Federico Vitabile","leads":159,"cont":78,"conv":9,"rech":30,"neg":6,"pend":34,"pot":3},{"mes":202602,"dh":18,"tl":"ag","name":"Giselda Allende","leads":146,"cont":102,"conv":5,"rech":77,"neg":10,"pend":11,"pot":4},{"mes":202602,"dh":18,"tl":"ag","name":"Ignacio Arias","leads":145,"cont":62,"conv":4,"rech":24,"neg":3,"pend":27,"pot":0},{"mes":202602,"dh":18,"tl":"ag","name":"Matias Mesiano","leads":186,"cont":107,"conv":12,"rech":70,"neg":3,"pend":22,"pot":2},{"mes":202602,"dh":18,"tl":"fq","name":"Barbara Nuñez","leads":178,"cont":116,"conv":7,"rech":89,"neg":2,"pend":3,"pot":0},{"mes":202602,"dh":18,"tl":"fq","name":"Diana Fraser","leads":145,"cont":110,"conv":9,"rech":76,"neg":5,"pend":5,"pot":2},{"mes":202602,"dh":18,"tl":"fq","name":"Francelys Perez","leads":142,"cont":96,"conv":5,"rech":68,"neg":1,"pend":21,"pot":1},{"mes":202602,"dh":18,"tl":"fq","name":"Luciana Pisacco","leads":147,"cont":90,"conv":6,"rech":55,"neg":6,"pend":23,"pot":2},{"mes":202602,"dh":18,"tl":"fq","name":"Niurka Pinzon","leads":146,"cont":93,"conv":0,"rech":85,"neg":2,"pend":5,"pot":0},{"mes":202602,"dh":18,"tl":"fq","name":"Sebastian Jansa","leads":155,"cont":116,"conv":8,"rech":72,"neg":13,"pend":25,"pot":2},{"mes":202602,"dh":18,"tl":"mjo","name":"Agustin Diz","leads":152,"cont":70,"conv":8,"rech":33,"neg":8,"pend":21,"pot":3},{"mes":202602,"dh":18,"tl":"mjo","name":"Carolina Delgado","leads":161,"cont":136,"conv":13,"rech":108,"neg":6,"pend":8,"pot":6},{"mes":202602,"dh":18,"tl":"mjo","name":"Evelyn Albarracin","leads":153,"cont":82,"conv":4,"rech":54,"neg":7,"pend":16,"pot":0},{"mes":202602,"dh":18,"tl":"mjo","name":"Juan Cruz Rial","leads":154,"cont":101,"conv":9,"rech":58,"neg":8,"pend":26,"pot":4},{"mes":202602,"dh":18,"tl":"mjo","name":"Manuel Elizarraga","leads":79,"cont":50,"conv":3,"rech":17,"neg":3,"pend":27,"pot":2},{"mes":202602,"dh":18,"tl":"mjo","name":"Manuel Uranga","leads":183,"cont":104,"conv":3,"rech":87,"neg":4,"pend":10,"pot":2},{"mes":202602,"dh":18,"tl":"mjo","name":"Mariana Gonzalez","leads":150,"cont":64,"conv":9,"rech":33,"neg":6,"pend":13,"pot":2},{"mes":202602,"dh":18,"tl":"mjo","name":"Nelson Salas","leads":147,"cont":88,"conv":3,"rech":60,"neg":4,"pend":18,"pot":0},{"mes":202602,"dh":18,"tl":"mjo","name":"Rocio Gonzalez","leads":141,"cont":72,"conv":3,"rech":43,"neg":8,"pend":14,"pot":1},{"mes":202602,"dh":18,"tl":"mjo","name":"Soledad Maydana","leads":150,"cont":54,"conv":11,"rech":27,"neg":3,"pend":13,"pot":3},{"mes":202603,"dh":20,"tl":"ag","name":"Alejandro Diaz","leads":183,"cont":95,"conv":6,"rech":42,"neg":8,"pend":38,"pot":0},{"mes":202603,"dh":20,"tl":"ag","name":"Analia Maisonnave","leads":45,"cont":0,"conv":0,"rech":0,"neg":0,"pend":0,"pot":0},{"mes":202603,"dh":20,"tl":"ag","name":"Barbara Diaz","leads":183,"cont":102,"conv":5,"rech":60,"neg":7,"pend":28,"pot":0},{"mes":202603,"dh":20,"tl":"ag","name":"Camila Coca","leads":185,"cont":100,"conv":10,"rech":40,"neg":8,"pend":31,"pot":0},{"mes":202603,"dh":20,"tl":"ag","name":"Catalina Fernandez","leads":212,"cont":128,"conv":11,"rech":84,"neg":7,"pend":27,"pot":2},{"mes":202603,"dh":20,"tl":"ag","name":"Diego Moreno","leads":188,"cont":112,"conv":18,"rech":52,"neg":5,"pend":32,"pot":7},{"mes":202603,"dh":20,"tl":"ag","name":"Emanuel Dursi","leads":186,"cont":87,"conv":9,"rech":46,"neg":11,"pend":19,"pot":2},{"mes":202603,"dh":20,"tl":"ag","name":"Federico Vitabile","leads":189,"cont":92,"conv":13,"rech":17,"neg":8,"pend":53,"pot":3},{"mes":202603,"dh":20,"tl":"ag","name":"Giselda Allende","leads":187,"cont":112,"conv":10,"rech":47,"neg":14,"pend":16,"pot":4},{"mes":202603,"dh":20,"tl":"ag","name":"Ignacio Arias","leads":187,"cont":69,"conv":1,"rech":25,"neg":7,"pend":35,"pot":0},{"mes":202603,"dh":20,"tl":"ag","name":"Matias Mesiano","leads":206,"cont":121,"conv":10,"rech":89,"neg":6,"pend":15,"pot":0},{"mes":202603,"dh":20,"tl":"fq","name":"Azul Pacioni","leads":45,"cont":0,"conv":0,"rech":0,"neg":0,"pend":0,"pot":1},{"mes":202603,"dh":20,"tl":"fq","name":"Barbara Nuñez","leads":205,"cont":156,"conv":8,"rech":103,"neg":0,"pend":21,"pot":4},{"mes":202603,"dh":20,"tl":"fq","name":"Diana Fraser","leads":190,"cont":150,"conv":15,"rech":96,"neg":8,"pend":0,"pot":2},{"mes":202603,"dh":20,"tl":"fq","name":"Francelys Perez","leads":178,"cont":101,"conv":7,"rech":76,"neg":1,"pend":16,"pot":2},{"mes":202603,"dh":20,"tl":"fq","name":"Joaquin Lescano","leads":45,"cont":0,"conv":0,"rech":0,"neg":0,"pend":0,"pot":0},{"mes":202603,"dh":20,"tl":"fq","name":"Luciana Pisacco","leads":179,"cont":114,"conv":4,"rech":65,"neg":4,"pend":29,"pot":3},{"mes":202603,"dh":20,"tl":"fq","name":"Micaela Marsuzi","leads":45,"cont":0,"conv":0,"rech":0,"neg":0,"pend":0,"pot":0},{"mes":202603,"dh":20,"tl":"fq","name":"Niurka Pinzon","leads":176,"cont":94,"conv":2,"rech":73,"neg":3,"pend":16,"pot":1},{"mes":202603,"dh":20,"tl":"fq","name":"Sebastian Jansa","leads":189,"cont":138,"conv":12,"rech":88,"neg":2,"pend":36,"pot":6},{"mes":202603,"dh":20,"tl":"mjo","name":"Agustin Diz","leads":188,"cont":102,"conv":6,"rech":57,"neg":7,"pend":32,"pot":1},{"mes":202603,"dh":20,"tl":"mjo","name":"Carolina Delgado","leads":182,"cont":111,"conv":7,"rech":88,"neg":4,"pend":12,"pot":1},{"mes":202603,"dh":20,"tl":"mjo","name":"Evelyn Albarracin","leads":182,"cont":125,"conv":5,"rech":66,"neg":11,"pend":43,"pot":1},{"mes":202603,"dh":20,"tl":"mjo","name":"Juan Cruz Rial","leads":180,"cont":92,"conv":11,"rech":41,"neg":7,"pend":32,"pot":2},{"mes":202603,"dh":20,"tl":"mjo","name":"Julian Torres","leads":45,"cont":0,"conv":0,"rech":0,"neg":0,"pend":0,"pot":0},{"mes":202603,"dh":20,"tl":"mjo","name":"Manuel Elizarraga","leads":206,"cont":144,"conv":9,"rech":95,"neg":2,"pend":38,"pot":3},{"mes":202603,"dh":20,"tl":"mjo","name":"Manuel Uranga","leads":203,"cont":130,"conv":7,"rech":110,"neg":9,"pend":4,"pot":0},{"mes":202603,"dh":20,"tl":"mjo","name":"Mariana Gonzalez","leads":183,"cont":87,"conv":2,"rech":53,"neg":5,"pend":28,"pot":1},{"mes":202603,"dh":20,"tl":"mjo","name":"Nelson Salas","leads":178,"cont":109,"conv":7,"rech":56,"neg":3,"pend":43,"pot":1},{"mes":202603,"dh":20,"tl":"mjo","name":"Rocio Angueira","leads":45,"cont":0,"conv":0,"rech":0,"neg":0,"pend":0,"pot":0},{"mes":202603,"dh":20,"tl":"mjo","name":"Rocio Gonzalez","leads":1,"cont":0,"conv":0,"rech":0,"neg":0,"pend":0,"pot":0},{"mes":202603,"dh":20,"tl":"mjo","name":"Soledad Maydana","leads":181,"cont":139,"conv":7,"rech":83,"neg":14,"pend":31,"pot":2},{"mes":202603,"dh":20,"tl":"sz","name":"Cristina Hsieh","leads":41,"cont":0,"conv":0,"rech":0,"neg":0,"pend":0,"pot":2},{"mes":202604,"dh":14,"tl":"ag","name":"Alejandro Diaz","leads":236,"cont":84,"conv":12,"rech":30,"neg":8,"pend":34,"pot":0},{"mes":202604,"dh":14,"tl":"ag","name":"Analia Maisonnave","leads":227,"cont":138,"conv":5,"rech":62,"neg":2,"pend":23,"pot":0},{"mes":202604,"dh":14,"tl":"ag","name":"Camila Coca","leads":230,"cont":113,"conv":7,"rech":30,"neg":26,"pend":43,"pot":1},{"mes":202604,"dh":14,"tl":"ag","name":"Catalina Fernandez","leads":218,"cont":81,"conv":7,"rech":45,"neg":8,"pend":21,"pot":0},{"mes":202604,"dh":14,"tl":"ag","name":"Diego Moreno","leads":232,"cont":90,"conv":9,"rech":43,"neg":3,"pend":32,"pot":0},{"mes":202604,"dh":14,"tl":"ag","name":"Emanuel Dursi","leads":235,"cont":85,"conv":10,"rech":32,"neg":16,"pend":27,"pot":0},{"mes":202604,"dh":14,"tl":"ag","name":"Federico Vitabile","leads":234,"cont":87,"conv":7,"rech":34,"neg":10,"pend":37,"pot":0},{"mes":202604,"dh":14,"tl":"ag","name":"Giselda Allende","leads":241,"cont":90,"conv":11,"rech":32,"neg":8,"pend":11,"pot":1},{"mes":202604,"dh":14,"tl":"ag","name":"Matias Mesiano","leads":222,"cont":88,"conv":11,"rech":40,"neg":5,"pend":31,"pot":0},{"mes":202604,"dh":14,"tl":"fq","name":"Azul Pacioni","leads":224,"cont":106,"conv":4,"rech":64,"neg":5,"pend":26,"pot":0},{"mes":202604,"dh":14,"tl":"fq","name":"Barbara Nuñez","leads":230,"cont":91,"conv":16,"rech":43,"neg":1,"pend":18,"pot":0},{"mes":202604,"dh":14,"tl":"fq","name":"Diana Fraser","leads":225,"cont":70,"conv":2,"rech":33,"neg":13,"pend":11,"pot":0},{"mes":202604,"dh":14,"tl":"fq","name":"Francelys Perez","leads":231,"cont":96,"conv":8,"rech":55,"neg":9,"pend":24,"pot":0},{"mes":202604,"dh":14,"tl":"fq","name":"Joaquin Lescano","leads":224,"cont":94,"conv":5,"rech":60,"neg":10,"pend":11,"pot":1},{"mes":202604,"dh":14,"tl":"fq","name":"Luciana Pisacco","leads":232,"cont":87,"conv":5,"rech":45,"neg":4,"pend":32,"pot":0},{"mes":202604,"dh":14,"tl":"fq","name":"Micaela Marsuzi","leads":225,"cont":98,"conv":8,"rech":60,"neg":9,"pend":24,"pot":1},{"mes":202604,"dh":14,"tl":"fq","name":"Sebastian Jansa","leads":235,"cont":101,"conv":17,"rech":34,"neg":13,"pend":38,"pot":0},{"mes":202604,"dh":14,"tl":"mjo","name":"Agustin Diz","leads":236,"cont":86,"conv":12,"rech":25,"neg":17,"pend":31,"pot":0},{"mes":202604,"dh":14,"tl":"mjo","name":"Carolina Delgado","leads":229,"cont":92,"conv":13,"rech":55,"neg":9,"pend":15,"pot":0},{"mes":202604,"dh":14,"tl":"mjo","name":"Juan Cruz Rial","leads":235,"cont":112,"conv":11,"rech":37,"neg":21,"pend":43,"pot":1},{"mes":202604,"dh":14,"tl":"mjo","name":"Julian Torres","leads":228,"cont":153,"conv":6,"rech":85,"neg":19,"pend":42,"pot":0},{"mes":202604,"dh":14,"tl":"mjo","name":"Manuel Elizarraga","leads":235,"cont":130,"conv":10,"rech":83,"neg":11,"pend":26,"pot":0},{"mes":202604,"dh":14,"tl":"mjo","name":"Mariana Gonzalez","leads":234,"cont":94,"conv":11,"rech":40,"neg":8,"pend":22,"pot":0},{"mes":202604,"dh":14,"tl":"mjo","name":"Rocio Angueira","leads":230,"cont":99,"conv":5,"rech":26,"neg":26,"pend":42,"pot":1},{"mes":202604,"dh":14,"tl":"mjo","name":"Soledad Maydana","leads":226,"cont":89,"conv":8,"rech":43,"neg":10,"pend":27,"pot":2},{"mes":202604,"dh":14,"tl":"sz","name":"Cristina Hsieh","leads":142,"cont":90,"conv":6,"rech":59,"neg":13,"pend":5,"pot":0},{"mes":202604,"dh":14,"tl":"sz","name":"Sofia Zhuang","leads":46,"cont":19,"conv":4,"rech":6,"neg":4,"pend":0,"pot":0}];
 
-/* Estado global */
-var CUR_TAB  = 'CALENTAMIENTO';
-var CUR_TL   = 'all';
-var CUR_SUB  = null;
-var SORT_COL = 'leads';
-var SORT_DIR = -1;
-var chartTL  = null;
-
-var TL_COLORS = {mjo:'#3483FA', ag:'#e6b800', fq:'#00A650', sz:'#FF7733'};
-var TL_NAMES  = {mjo:'MJO', ag:'AG', fq:'FQ', sz:'SZ'};
-
-function fmt(n){
-  if(n>=1e9) return (n/1e9).toFixed(1)+'B';
-  if(n>=1e6) return (n/1e6).toFixed(1)+'M';
-  if(n>=1e3) return (n/1e3).toFixed(1)+'K';
-  return n.toString();
-}
+/* ══════════════════════════════════════════════════
+   SHARED UTILS
+══════════════════════════════════════════════════ */
+var TL_COLORS={mjo:'#3483FA',ag:'#e6b800',fq:'#00A650',sz:'#FF7733'};
+var TL_NAMES={mjo:'MJO',ag:'AG',fq:'FQ',sz:'SZ'};
+var TL_LIST=['mjo','ag','fq','sz'];
+var MESES_LABEL=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+function mesLabel(m){var s=m.toString();return MESES_LABEL[parseInt(s.slice(4,6))-1]+" '"+s.slice(2,4);}
 function pct(a,b){return b>0?Math.round(a/b*100):0;}
-function money(n){
-  if(n>=1e9) return '$'+(n/1e9).toFixed(1)+'B';
-  if(n>=1e6) return '$'+(n/1e6).toFixed(1)+'M';
-  if(n>=1e3) return '$'+(n/1e3).toFixed(1)+'K';
-  return '$'+Math.round(n).toLocaleString('es-AR');
+function fmtM(n){return n>=1e9?'$'+(n/1e9).toFixed(1)+'B':n>=1e6?'$'+(n/1e6).toFixed(1)+'M':n>=1e3?'$'+(n/1e3).toFixed(0)+'K':'$'+n.toFixed(0);}
+function fmtF(n){return n.toFixed(1);}
+
+function switchSection(id,el){
+  document.querySelectorAll('.section').forEach(function(s){s.classList.remove('active');});
+  document.querySelectorAll('.section-btn').forEach(function(b){b.classList.remove('active');});
+  document.getElementById('section-'+id).classList.add('active');
+  el.classList.add('active');
 }
 
-/* Filtrado de filas crudas segun vista actual */
-function getFilteredData(){
+/* ══════════════════════════════════════════════════
+   FUNNEL - MES ACTUAL
+══════════════════════════════════════════════════ */
+var F_TAB='TOTAL', F_TL='all', F_SUB=null;
+var F_CHART_ESTADOS=null;
+
+function setTab(tab,el){
+  F_TAB=tab; F_SUB=null;
+  document.querySelectorAll('#camp-tabs .tab').forEach(function(b){b.classList.remove('active');});
+  el.classList.add('active');
+  var subBar=document.getElementById('sub-tabs');
+  subBar.classList.toggle('visible', tab==='PROMO CUOTAS');
+  if(tab==='PROMO CUOTAS'){
+    document.querySelectorAll('.sub-tab').forEach(function(b){b.classList.remove('active');});
+    document.querySelector('.sub-tab').classList.add('active');
+  }
+  renderFunnel();
+}
+function setSub(sub,el){
+  F_SUB=sub;
+  document.querySelectorAll('.sub-tab').forEach(function(b){b.classList.remove('active');});
+  el.classList.add('active');
+  renderFunnel();
+}
+function setFTL(tl,el){
+  F_TL=tl;
+  document.querySelectorAll('#section-funnel .tl-btn').forEach(function(b){b.classList.remove('active');});
+  el.classList.add('active');
+  renderFunnel();
+}
+
+function getFunnelFiltered(){
   return DATA.filter(function(r){
-    if(CUR_TAB!=='TOTAL' && r.campana!==CUR_TAB) return false;
-    if(CUR_TL!=='all' && r.tl!==CUR_TL) return false;
-    if(CUR_TAB==='PROMO CUOTAS' && CUR_SUB!==null && r.sub!==CUR_SUB) return false;
+    if(F_TAB!=='TOTAL'&&r.campana!==F_TAB)return false;
+    if(F_TL!=='all'&&r.tl!==F_TL)return false;
+    if(F_TAB==='PROMO CUOTAS'&&F_SUB!==null&&r.sub!==F_SUB)return false;
     return true;
   });
 }
 
-/* Agregacion por asesor: 1 fila por asesor, metricas sumadas */
-function aggregateByAdvisor(rows){
+function aggByAdvisor(rows){
   var map={};
   rows.forEach(function(r){
-    var key=r.tl+'|'+r.name;
-    if(!map[key]){
-      map[key]={tl:r.tl,name:r.name,leads:0,cont:0,conv:0,pend:0,neg:0,rech:0,pot:0,tpv_inc_pot:0};
-    }
-    var a=map[key];
-    a.leads+=r.leads; a.cont+=r.cont; a.conv+=r.conv;
-    a.pend+=r.pend;   a.neg+=r.neg;   a.rech+=r.rech;
-    a.pot+=r.pot;                 /* SUMA la cantidad de potenciados */
-    a.tpv_inc_pot+=r.tpv_inc_pot;
+    var k=r.tl+'|'+r.name;
+    if(!map[k])map[k]={tl:r.tl,name:r.name,leads:0,cont:0,conv:0,pend:0,neg:0,rech:0,pot:0,tpv_inc_pot:0};
+    var a=map[k];
+    a.leads+=r.leads;a.cont+=r.cont;a.conv+=r.conv;
+    a.pend+=r.pend;a.neg+=r.neg;a.rech+=r.rech;
+    a.pot+=r.pot;a.tpv_inc_pot+=r.tpv_inc_pot||0;
   });
-  return Object.values(map);
+  return Object.values(map).sort(function(a,b){
+    var o=['mjo','ag','fq','sz'];
+    var ta=o.indexOf(a.tl),tb=o.indexOf(b.tl);
+    return ta!==tb?ta-tb:a.name.localeCompare(b.name);
+  });
 }
 
-/* Filas de tabla (filtradas y 1 por asesor) */
-function getRows(){
-  return aggregateByAdvisor(getFilteredData());
-}
-
-/* Controles */
-function setTab(tab,el){
-  CUR_TAB=tab;
-  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
-  el.classList.add('active');
-  var sb=document.getElementById('sub-bar');
-  if(tab==='PROMO CUOTAS'){sb.classList.add('visible');}
-  else{
-    sb.classList.remove('visible');
-    CUR_SUB=null;
-    document.querySelectorAll('.sub-btn').forEach(function(b){b.classList.remove('active');});
-    document.querySelector('.sub-btn').classList.add('active');
-  }
-  render();
-}
-function setTL(tl,el){
-  CUR_TL=tl;
-  document.querySelectorAll('.tl-btn').forEach(function(b){b.classList.remove('active');});
-  el.classList.add('active');
-  render();
-}
-function setSub(sub,el){
-  CUR_SUB=sub;
-  document.querySelectorAll('.sub-btn').forEach(function(b){b.classList.remove('active');});
-  el.classList.add('active');
-  render();
-}
-function sortBy(col){
-  if(SORT_COL===col){SORT_DIR*=-1;}else{SORT_COL=col;SORT_DIR=-1;}
-  renderTable();
-}
-
-/* Render principal */
-function render(){
-  document.getElementById('last-updated').textContent='Actualizado: '+UPDATED;
-  document.getElementById('footer-updated').textContent=UPDATED;
-  renderKPIs();
-  renderFunnel();
-  renderTLChart();
-  renderTLCards();
-  renderTable();
-}
-
-/* KPIs */
-function renderKPIs(){
-  var raw=getFilteredData();
-  var agr=getRows();
-  var leads=0,cont=0,conv=0,pend=0,neg=0,rech=0;
-  raw.forEach(function(r){leads+=r.leads;cont+=r.cont;conv+=r.conv;pend+=r.pend;neg+=r.neg;rech+=r.rech;});
-  setKV('kv-leads',fmt(leads),'');
-  setKV('kv-cont',fmt(cont),pct(cont,leads)+'% de leads');
-  setKV('kv-neg',fmt(neg),pct(neg,cont)+'% de contactados');
-  setKV('kv-conv',fmt(conv),pct(conv,cont)+'% conv/cont');
-  setKV('kv-rech',fmt(rech),pct(rech,cont)+'% de contactados');
-  /* Top KPIs: contar asesores con pot>0 y sumar tpv incremental */
-  var potCount=agr.filter(function(r){return r.pot>0;}).length;
-  var tpvInc=agr.reduce(function(s,r){return s+r.tpv_inc_pot;},0);
-  document.getElementById('kv-potenciados').textContent=potCount;
-  document.getElementById('kv-tpv-inc').textContent=money(tpvInc);
-}
-function setKV(id,val,sub){
-  var el=document.getElementById(id);
-  if(el) el.textContent=val;
-  var se=document.getElementById(id.replace('kv-','ks-'));
-  if(se) se.textContent=sub;
-}
-
-/* Funnel */
-function renderFunnel(){
-  var raw=getFilteredData();
-  var leads=0,cont=0,conv=0,neg=0;
-  raw.forEach(function(r){leads+=r.leads;cont+=r.cont;conv+=r.conv;neg+=r.neg;});
-  var stages=[
-    {name:'Leads',       val:leads,color:'#3483FA'},
-    {name:'Contactados', val:cont, color:'#00A650'},
-    {name:'En Negoc.',   val:neg,  color:'#FF7733'},
-    {name:'Convertidos', val:conv, color:'#8b5cf6'},
+function renderFunnelKPIs(rows){
+  var tot={leads:0,cont:0,conv:0,pend:0,neg:0,rech:0,pot:0};
+  rows.forEach(function(r){tot.leads+=r.leads;tot.cont+=r.cont;tot.conv+=r.conv;tot.pend+=r.pend;tot.neg+=r.neg;tot.rech+=r.rech;tot.pot+=r.pot;});
+  var kpis=[
+    {cls:'leads',label:'Leads',val:tot.leads,sub:''},
+    {cls:'cont',label:'Contactados',val:tot.cont,sub:pct(tot.cont,tot.leads)+'%'},
+    {cls:'conv',label:'Convertidos',val:tot.conv,sub:pct(tot.conv,tot.leads)+'%'},
+    {cls:'rech',label:'Rechazados',val:tot.rech,sub:pct(tot.rech,tot.leads)+'%'},
+    {cls:'neg',label:'En Negoc.',val:tot.neg,sub:pct(tot.neg,tot.leads)+'%'},
+    {cls:'pend',label:'Pendientes',val:tot.pend,sub:pct(tot.pend,tot.leads)+'%'},
+    {cls:'pot',label:'Potenciados',val:tot.pot,sub:''},
   ];
-  var maxVal=stages[0].val||1;
-  var html=stages.map(function(s,i){
-    var w=Math.round(s.val/maxVal*100);
-    var p=i===0?'100%':pct(s.val,leads)+'%';
-    return '<div class="funnel-stage"><div class="funnel-row">'
-      +'<div class="funnel-name">'+s.name+'</div>'
-      +'<div class="funnel-bar-wrap"><div class="funnel-bar" style="width:'+w+'%;background:'+s.color+'">'
-      +'<span>'+fmt(s.val)+'</span></div></div>'
-      +'<div class="funnel-count">'+fmt(s.val)+'</div>'
-      +'<div class="funnel-pct">'+p+'</div>'
-      +'</div></div>';
+  document.getElementById('f-kpi-row').innerHTML=kpis.map(function(k){
+    return '<div class="kpi '+k.cls+'"><div class="kpi-label">'+k.label+'</div><div class="kpi-value">'+k.val+'</div>'+(k.sub?'<div class="kpi-pct">'+k.sub+' del total</div>':'')+'</div>';
   }).join('');
-  document.getElementById('funnel-stages').innerHTML=html;
 }
 
-/* Grafico TL */
-function renderTLChart(){
-  var raw=getFilteredData();
-  var tls=['mjo','ag','fq','sz'],labels=[],vals=[],colors=[];
-  tls.forEach(function(tl){
-    var rows=raw.filter(function(r){return r.tl===tl;});
-    if(!rows.length) return;
-    var cont=0,conv=0;
-    rows.forEach(function(r){cont+=r.cont;conv+=r.conv;});
-    labels.push(TL_NAMES[tl]);
-    vals.push(pct(conv,cont));
-    colors.push(TL_COLORS[tl]+'CC');
+function renderTPVStrip(){
+  var tpv_tot=0,tpv_inc=0,n_pot=0;
+  var filtered=F_TL==='all'?TPV_DATA:TPV_DATA.filter(function(r){return r.tl===F_TL;});
+  var fcamp=filtered.filter(function(r){return F_TAB==='TOTAL'||r.campana===F_TAB;});
+  fcamp.forEach(function(r){tpv_tot+=r.tpv_m0p||0;if(r.pot){tpv_inc+=r.tpv_inc_pot||0;n_pot++;}});
+  document.getElementById('tpv-strip').innerHTML=
+    '<div class="tpv-card"><div class="tpv-label">TPV Proyectado (Convertidos)</div><div class="tpv-value">'+fmtM(tpv_tot)+'</div><div class="tpv-sub">Proyeccion fin de mes</div></div>'+
+    '<div class="tpv-card inc"><div class="tpv-label">TPV Incremental Potenciados ('+n_pot+')</div><div class="tpv-value">'+fmtM(tpv_inc)+'</div><div class="tpv-sub">vs M-1 de potenciados</div></div>';
+}
+
+function renderFunnelVisual(rows){
+  var tot={leads:0,cont:0,conv:0,neg:0,rech:0};
+  rows.forEach(function(r){tot.leads+=r.leads;tot.cont+=r.cont;tot.conv+=r.conv;tot.neg+=r.neg;tot.rech+=r.rech;});
+  var stages=[
+    {name:'Leads',val:tot.leads,color:'#3483FA'},
+    {name:'Contactados',val:tot.cont,color:'#00A650'},
+    {name:'Convertidos',val:tot.conv,color:'#8b5cf6'},
+    {name:'En Negoc.',val:tot.neg,color:'#FF7733'},
+    {name:'Rechazados',val:tot.rech,color:'#e53935'},
+  ];
+  var max=tot.leads||1;
+  document.getElementById('funnel-visual').innerHTML=stages.map(function(s){
+    var w=Math.round(s.val/max*100);
+    return '<div class="funnel-stage"><div class="funnel-row">'+
+      '<div class="funnel-name">'+s.name+'</div>'+
+      '<div class="funnel-bar-wrap"><div class="funnel-bar" style="width:'+w+'%;background:'+s.color+'"><span>'+w+'%</span></div></div>'+
+      '<div class="funnel-count">'+s.val+'</div>'+
+      '</div></div>';
+  }).join('');
+}
+
+function renderEstadosChart(rows){
+  var tot={conv:0,rech:0,neg:0,pend:0};
+  rows.forEach(function(r){tot.conv+=r.conv;tot.rech+=r.rech;tot.neg+=r.neg;tot.pend+=r.pend;});
+  if(F_CHART_ESTADOS)F_CHART_ESTADOS.destroy();
+  var ctx=document.getElementById('chart-estados').getContext('2d');
+  F_CHART_ESTADOS=new Chart(ctx,{type:'doughnut',data:{
+    labels:['Convertidos','Rechazados','En Negoc.','Pendientes'],
+    datasets:[{data:[tot.conv,tot.rech,tot.neg,tot.pend],
+      backgroundColor:['#8b5cf688','#e5393588','#FF773388','#94a3b888'],
+      borderColor:['#8b5cf6','#e53935','#FF7733','#94a3b8'],borderWidth:2}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'60%',
+      plugins:{legend:{position:'right',labels:{usePointStyle:true,padding:12,font:{size:11}}}}}});
+}
+
+function renderFunnelTable(rows){
+  var agg=aggByAdvisor(rows);
+  document.getElementById('f-tbody').innerHTML=agg.map(function(a){
+    var cp=pct(a.cont,a.leads),vp=pct(a.conv,a.leads),rp=pct(a.rech,a.leads);
+    var cc=cp>=65?'high':cp>=50?'mid':'low';
+    var vc=vp>=8?'high':vp>=5?'mid':'low';
+    var rc=rp<=30?'high':rp<=50?'mid':'low';
+    var potCell=a.pot>0?'<span class="pill pot">'+a.pot+'</span>':'-';
+    return '<tr>'+
+      '<td><span class="tl-dot" style="background:'+TL_COLORS[a.tl]+'"></span>'+TL_NAMES[a.tl]+'</td>'+
+      '<td>'+a.name+'</td><td>'+a.leads+'</td>'+
+      '<td><span class="pill '+cc+'">'+cp+'%</span></td>'+
+      '<td><span class="pill '+vc+'">'+vp+'%</span></td>'+
+      '<td><span class="pill '+rc+'">'+rp+'%</span></td>'+
+      '<td>'+a.neg+'</td><td>'+a.pend+'</td><td>'+potCell+'</td></tr>';
+  }).join('');
+}
+
+function renderFunnel(){
+  if(!DATA||!DATA.length){
+    document.getElementById('f-kpi-row').innerHTML='<div style="color:var(--muted);padding:20px">Sin datos. Ejecuta actualizar_dashboard.py</div>';
+    return;
+  }
+  var rows=getFunnelFiltered();
+  renderTPVStrip();
+  renderFunnelKPIs(rows);
+  renderFunnelVisual(rows);
+  renderEstadosChart(rows);
+  renderFunnelTable(rows);
+}
+
+/* ══════════════════════════════════════════════════
+   HISTORICO
+══════════════════════════════════════════════════ */
+var H_TL='all',H_ASESOR='all',H_DESGLOSAR=false,H_CHARTS={};
+
+function setHTL(tl,el){
+  H_TL=tl;H_ASESOR='all';
+  document.querySelectorAll('#section-hist .tl-btn').forEach(function(b){b.classList.remove('active');});
+  el.classList.add('active');
+  document.getElementById('asesor-select').value='all';
+  renderHist();
+}
+function setAsesor(val){H_ASESOR=val;renderHist();}
+function toggleDesglosar(){
+  H_DESGLOSAR=!H_DESGLOSAR;
+  document.getElementById('desglosar-btn').classList.toggle('active',H_DESGLOSAR);
+  renderHist();
+}
+function populateAsesorSelect(){
+  var sel=document.getElementById('asesor-select');
+  var src=H_TL==='all'?DATA_HIST:DATA_HIST.filter(function(r){return r.tl===H_TL;});
+  var names=[...new Set(src.map(function(r){return r.name;}))].sort();
+  while(sel.options.length>1)sel.remove(1);
+  names.forEach(function(n){var o=document.createElement('option');o.value=n;o.textContent=n;sel.appendChild(o);});
+}
+
+function getHistFiltered(){
+  return DATA_HIST.filter(function(r){
+    if(H_TL!=='all'&&r.tl!==H_TL)return false;
+    if(H_ASESOR!=='all'&&r.name!==H_ASESOR)return false;
+    return true;
   });
-  if(chartTL){
-    chartTL.data.labels=labels;
-    chartTL.data.datasets[0].data=vals;
-    chartTL.data.datasets[0].backgroundColor=colors;
-    chartTL.update('none');
+}
+function aggByMes(rows){
+  var map={};
+  rows.forEach(function(r){
+    if(!map[r.mes])map[r.mes]={mes:r.mes,dh:r.dh,leads:0,cont:0,conv:0,rech:0,neg:0,pend:0,pot:0,names:new Set()};
+    var a=map[r.mes];
+    a.leads+=r.leads;a.cont+=r.cont;a.conv+=r.conv;a.rech+=r.rech;a.neg+=r.neg;a.pend+=r.pend;a.pot+=r.pot;a.names.add(r.name);
+  });
+  return Object.values(map).map(function(a){a.n=a.names.size;delete a.names;return a;}).sort(function(a,b){return a.mes-b.mes;});
+}
+function aggByMesTL(tl){return aggByMes(DATA_HIST.filter(function(r){return r.tl===tl;}));}
+
+function hKpiCard(cls,label,val,sub,delta){
+  return '<div class="kpi '+cls+'"><div class="kpi-label">'+label+'</div><div class="kpi-value">'+val+'</div>'+(sub?'<div class="kpi-sub">'+sub+'</div>':'')+delta+'</div>';
+}
+function renderHistKPIs(byMes){
+  var row=document.getElementById('h-kpi-row');
+  if(!byMes||!byMes.length){row.innerHTML='';return;}
+  var last=byMes[byMes.length-1],prev=byMes.length>1?byMes[byMes.length-2]:null;
+  var vsLabel=prev?'vs '+mesLabel(prev.mes):'-';
+  function dPct(c,p,up){if(!p||p===0)return '<span class="kpi-delta flat">-</span>';var d=((c-p)/p)*100;var g=(up&&d>=0)||(!up&&d<=0);var cl=d===0?'flat':(g?'up':'down');return '<span class="kpi-delta '+cl+'">'+(d>0?'▲':'▼')+' '+Math.abs(d).toFixed(1)+'%</span>';}
+  function dPP(c,p,up){if(p===null||p===undefined)return '<span class="kpi-delta flat">-</span>';var d=c-p;var g=(up&&d>=0)||(!up&&d<=0);var cl=d===0?'flat':(g?'up':'down');return '<span class="kpi-delta '+cl+'">'+(d>0?'▲':'▼')+' '+Math.abs(d).toFixed(1)+' pp</span>';}
+  var lcp=pct(last.cont,last.leads),pcp=prev?pct(prev.cont,prev.leads):null;
+  var lvp=pct(last.conv,last.leads),pvp=prev?pct(prev.conv,prev.leads):null;
+  var lrp=pct(last.rech,last.leads),prp=prev?pct(prev.rech,prev.leads):null;
+  var lca=last.n>0?last.cont/last.n:0,pca=(prev&&prev.n>0)?prev.cont/prev.n:null;
+  row.innerHTML=
+    hKpiCard('leads','Leads',last.leads,vsLabel,prev?dPct(last.leads,prev.leads,true):'')+
+    hKpiCard('cont','Contactados',last.cont,vsLabel,prev?dPct(last.cont,prev.cont,true):'')+
+    hKpiCard('contpct','Cont %',lcp+'%',vsLabel,prev?dPP(lcp,pcp,true):'')+
+    hKpiCard('contasesor','Cont / Asesor',fmtF(lca),vsLabel,prev?dPct(lca,pca,true):'')+
+    hKpiCard('conv','Convertidos',last.conv,vsLabel,prev?dPct(last.conv,prev.conv,true):'')+
+    hKpiCard('convpct','Conv %',lvp+'%',vsLabel,prev?dPP(lvp,pvp,true):'')+
+    hKpiCard('rech','Rechazados',last.rech,vsLabel,prev?dPct(last.rech,prev.rech,false):'')+
+    hKpiCard('rechpct','Rech %',lrp+'%',vsLabel,prev?dPP(lrp,prp,false):'');
+}
+
+function destroyHChart(id){if(H_CHARTS[id]){H_CHARTS[id].destroy();delete H_CHARTS[id];}}
+function buildMixed(id,labels,bars,lines){
+  destroyHChart(id);var ctx=document.getElementById(id).getContext('2d');
+  var ds=bars.map(function(d){return{type:'bar',label:d.label,data:d.data,backgroundColor:d.color+'88',borderColor:d.color,borderWidth:1,borderRadius:3,yAxisID:'yBar'};})
+    .concat(lines.map(function(d){return{type:'line',label:d.label,data:d.data,borderColor:d.color,backgroundColor:'transparent',borderWidth:2.5,pointRadius:4,tension:0.3,yAxisID:'yPct'};}));
+  H_CHARTS[id]=new Chart(ctx,{type:'bar',data:{labels:labels,datasets:ds},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+    plugins:{legend:{position:'top',labels:{usePointStyle:true,padding:12,font:{size:11}}}},
+    scales:{yBar:{type:'linear',position:'left',beginAtZero:true,grid:{color:'#f0f0f0'}},yPct:{type:'linear',position:'right',beginAtZero:true,max:100,grid:{display:false},ticks:{callback:function(v){return v+'%';}}}}}});
+}
+function buildBar(id,labels,datasets){
+  destroyHChart(id);var ctx=document.getElementById(id).getContext('2d');
+  H_CHARTS[id]=new Chart(ctx,{type:'bar',data:{labels:labels,datasets:datasets.map(function(d){return{label:d.label,data:d.data,backgroundColor:d.color+'88',borderColor:d.color,borderWidth:1,borderRadius:3};})},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{position:'top',labels:{usePointStyle:true,padding:12,font:{size:11}}}},scales:{y:{beginAtZero:true},x:{grid:{display:false}}}}});
+}
+
+function renderHistCharts(byMes){
+  var labels=byMes.map(function(m){return mesLabel(m.mes);});
+  if(H_DESGLOSAR&&H_ASESOR==='all'){
+    var bds=TL_LIST.map(function(tl){var m=aggByMesTL(tl);var mp={};m.forEach(function(x){mp[x.mes]=x;});return{label:TL_NAMES[tl],data:byMes.map(function(x){var t=mp[x.mes];return t?t.cont:0;}),color:TL_COLORS[tl]};});
+    var lds=TL_LIST.map(function(tl){var m=aggByMesTL(tl);var mp={};m.forEach(function(x){mp[x.mes]=x;});return{label:TL_NAMES[tl]+' %',data:byMes.map(function(x){var t=mp[x.mes];return t?pct(t.cont,t.leads):0;}),color:TL_COLORS[tl]};});
+    buildMixed('chart-cont',labels,bds,lds);
+    buildBar('chart-contasesor',labels,TL_LIST.map(function(tl){var m=aggByMesTL(tl);var mp={};m.forEach(function(x){mp[x.mes]=x;});return{label:TL_NAMES[tl],data:byMes.map(function(x){var t=mp[x.mes];return t&&t.n>0?parseFloat((t.cont/t.n).toFixed(1)):0;}),color:TL_COLORS[tl]};}));
+    var b3=TL_LIST.map(function(tl){var m=aggByMesTL(tl);var mp={};m.forEach(function(x){mp[x.mes]=x;});return{label:TL_NAMES[tl],data:byMes.map(function(x){var t=mp[x.mes];return t?t.conv:0;}),color:TL_COLORS[tl]};});
+    var l3=TL_LIST.map(function(tl){var m=aggByMesTL(tl);var mp={};m.forEach(function(x){mp[x.mes]=x;});return{label:TL_NAMES[tl]+' %',data:byMes.map(function(x){var t=mp[x.mes];return t?pct(t.conv,t.leads):0;}),color:TL_COLORS[tl]};});
+    buildMixed('chart-conv',labels,b3,l3);
+    var b4=TL_LIST.map(function(tl){var m=aggByMesTL(tl);var mp={};m.forEach(function(x){mp[x.mes]=x;});return{label:TL_NAMES[tl],data:byMes.map(function(x){var t=mp[x.mes];return t?t.rech:0;}),color:TL_COLORS[tl]};});
+    var l4=TL_LIST.map(function(tl){var m=aggByMesTL(tl);var mp={};m.forEach(function(x){mp[x.mes]=x;});return{label:TL_NAMES[tl]+' %',data:byMes.map(function(x){var t=mp[x.mes];return t?pct(t.rech,t.leads):0;}),color:TL_COLORS[tl]};});
+    buildMixed('chart-rech',labels,b4,l4);
   } else {
-    var ctx=document.getElementById('tl-chart').getContext('2d');
-    chartTL=new Chart(ctx,{
-      type:'bar',
-      data:{labels:labels,datasets:[{label:'Conv/Cont%',data:vals,backgroundColor:colors,borderRadius:6}]},
-      options:{
-        responsive:true,maintainAspectRatio:false,
-        plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return c.parsed.y+'%';}}}},
-        scales:{y:{beginAtZero:true,max:100,ticks:{callback:function(v){return v+'%';}}},x:{grid:{display:false}}}
-      }
-    });
+    buildMixed('chart-cont',labels,[{label:'Contactados',data:byMes.map(function(m){return m.cont;}),color:'#00A650'}],[{label:'Cont %',data:byMes.map(function(m){return pct(m.cont,m.leads);}),color:'#16a34a'}]);
+    buildBar('chart-contasesor',labels,[{label:'Cont / Asesor',data:byMes.map(function(m){return m.n>0?parseFloat((m.cont/m.n).toFixed(1)):0;}),color:'#0ea5e9'}]);
+    buildMixed('chart-conv',labels,[{label:'Convertidos',data:byMes.map(function(m){return m.conv;}),color:'#8b5cf6'}],[{label:'Conv %',data:byMes.map(function(m){return pct(m.conv,m.leads);}),color:'#7c3aed'}]);
+    buildMixed('chart-rech',labels,[{label:'Rechazados',data:byMes.map(function(m){return m.rech;}),color:'#e53935'}],[{label:'Rech %',data:byMes.map(function(m){return pct(m.rech,m.leads);}),color:'#b71c1c'}]);
   }
 }
 
-/* Tarjetas TL */
-function renderTLCards(){
-  var raw=getFilteredData();
-  var tls=['mjo','ag','fq','sz'],html='';
-  tls.forEach(function(tl){
-    var rows=raw.filter(function(r){return r.tl===tl;});
-    if(!rows.length) return;
-    var leads=0,cont=0,conv=0;
-    rows.forEach(function(r){leads+=r.leads;cont+=r.cont;conv+=r.conv;});
-    var cp=pct(cont,leads),vp=pct(conv,cont);
-    html+='<div class="tl-card '+tl+'">'
-      +'<div class="tl-card-header"><div class="tl-card-name">'+TL_NAMES[tl]+'</div>'
-      +'<div class="tl-card-badge">'+fmt(leads)+' leads</div></div>'
-      +'<div class="tl-mini-stat"><span>Contactados</span><b>'+fmt(cont)+' ('+cp+'%)</b></div>'
-      +'<div class="mini-bar-wrap"><div class="mini-bar" style="width:'+cp+'%;background:'+TL_COLORS[tl]+'"></div></div>'
-      +'<div class="tl-mini-stat"><span>Convertidos</span><b>'+fmt(conv)+' ('+vp+'%)</b></div>'
-      +'<div class="mini-bar-wrap"><div class="mini-bar" style="width:'+vp+'%;background:'+TL_COLORS[tl]+'80"></div></div>'
-      +'</div>';
-  });
-  document.getElementById('tl-cards').innerHTML=html;
+function renderHistTable(byMes){
+  var tbody=document.getElementById('h-tbody');
+  if(!byMes||!byMes.length){tbody.innerHTML='<tr><td colspan="11" style="text-align:center;padding:20px;color:var(--muted)">Sin datos</td></tr>';return;}
+  tbody.innerHTML=byMes.map(function(m){
+    var cp=pct(m.cont,m.leads),vp=pct(m.conv,m.leads),rp=pct(m.rech,m.leads);
+    var cc=cp>=65?'high':cp>=50?'mid':'low',vc=vp>=8?'high':vp>=5?'mid':'low',rc=rp<=30?'high':rp<=50?'mid':'low';
+    return '<tr><td>'+mesLabel(m.mes)+'</td><td>'+m.leads+'</td><td>'+m.cont+'</td>'+
+      '<td><span class="pill '+cc+'">'+cp+'%</span></td>'+
+      '<td><strong>'+(m.n>0?(m.cont/m.n).toFixed(1):'-')+'</strong></td>'+
+      '<td>'+m.conv+'</td><td><span class="pill '+vc+'">'+vp+'%</span></td>'+
+      '<td>'+m.rech+'</td><td><span class="pill '+rc+'">'+rp+'%</span></td>'+
+      '<td>'+m.neg+'</td><td>'+m.pot+'</td></tr>';
+  }).join('');
 }
 
-/* Tabla de asesores */
-function renderTable(){
-  var rows=getRows();
-  rows.sort(function(a,b){
-    var av,bv;
-    switch(SORT_COL){
-      case 'tl':      av=a.tl;   bv=b.tl;   break;
-      case 'name':    av=a.name; bv=b.name;  break;
-      case 'contPct': av=pct(a.cont,a.leads); bv=pct(b.cont,b.leads); break;
-      case 'convPct': av=pct(a.conv,a.cont);  bv=pct(b.conv,b.cont);  break;
-      default:        av=a[SORT_COL]||0;      bv=b[SORT_COL]||0;
-    }
-    if(av<bv) return SORT_DIR;
-    if(av>bv) return -SORT_DIR;
-    return 0;
-  });
-  var html='';
-  rows.forEach(function(r){
-    var cp=pct(r.cont,r.leads),vp=pct(r.conv,r.cont);
-    /* Potenciados: mostrar numero (0 se oculta con guion) */
-    var potCell=r.pot>0?'<span class="pill pot">'+r.pot+'</span>':'-';
-    var tpvCell=r.tpv_inc_pot>0?money(r.tpv_inc_pot):'-';
-    html+='<tr>'
-      +'<td><span class="tl-dot" style="background:'+(TL_COLORS[r.tl]||'#999')+'"></span>'+(TL_NAMES[r.tl]||r.tl.toUpperCase())+'</td>'
-      +'<td>'+r.name+'</td>'
-      +'<td>'+r.leads+'</td>'
-      +'<td>'+r.cont+'</td>'
-      +'<td><span class="pill '+(cp>=70?'high':cp>=40?'mid':'low')+'">'+cp+'%</span></td>'
-      +'<td>'+r.neg+'</td>'
-      +'<td>'+r.conv+'</td>'
-      +'<td><span class="pill '+(vp>=30?'high':vp>=15?'mid':'low')+'">'+vp+'%</span></td>'
-      +'<td>'+r.rech+'</td>'
-      +'<td>'+r.pend+'</td>'
-      +'<td>'+potCell+'</td>'
-      +'<td>'+tpvCell+'</td>'
-      +'</tr>';
-  });
-  document.getElementById('asesor-tbody').innerHTML=html||'<tr><td colspan="12" style="text-align:center;color:var(--muted);padding:20px">Sin datos</td></tr>';
+function renderHist(){
+  populateAsesorSelect();
+  var filtered=getHistFiltered();
+  var byMes=aggByMes(filtered);
+  renderHistKPIs(byMes);
+  renderHistCharts(byMes);
+  renderHistTable(byMes);
 }
 
-render();
+/* ══════════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════════ */
+document.getElementById('upd-funnel').textContent=UPDATED_FUNNEL;
+document.getElementById('upd-hist').textContent=UPDATED_HIST;
+renderFunnel();
+renderHist();
 </script>
 </body>
 </html>
