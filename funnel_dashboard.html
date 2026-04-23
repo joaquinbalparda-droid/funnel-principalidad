@@ -192,21 +192,31 @@
       <button class="tl-btn ag"  onclick="setTpvTL('ag',this)">AG</button>
       <button class="tl-btn fq"  onclick="setTpvTL('fq',this)">FQ</button>
       <button class="tl-btn sz"  onclick="setTpvTL('sz',this)">SZ</button>
-      <div class="filter-sep"></div>
-      <span class="filter-label">Período:</span>
-      <button class="camp-btn active" id="cp-m0" onclick="setCohortPeriod('m0',this)">M0 (Conv.)</button>
-      <button class="camp-btn" id="cp-m1" onclick="setCohortPeriod('m1',this)">M1 (+1 mes)</button>
-      <button class="camp-btn" id="cp-m2" onclick="setCohortPeriod('m2',this)">M2 (+2 meses)</button>
-      <button class="camp-btn" id="cp-all" onclick="setCohortPeriod('all',this)">Todos</button>
     </div>
     <div class="kpi-row" id="cohort-kpi-row"></div>
     <div class="charts-grid" style="grid-template-columns:1fr">
       <div class="chart-card">
-        <h3>Cantidad de Potenciados por Cohort</h3>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;margin-bottom:4px">
+          <h3 style="margin:0">Cantidad de Potenciados por Cohort</h3>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+          <button class="camp-btn cp-inner active" id="cp-count-all" onclick="setCohortPeriod('all',this,'count')">Todos</button>
+          <button class="camp-btn cp-inner" id="cp-count-m0" onclick="setCohortPeriod('m0',this,'count')">M0 (Conv.)</button>
+          <button class="camp-btn cp-inner" id="cp-count-m1" onclick="setCohortPeriod('m1',this,'count')">M1 (+1 mes)</button>
+          <button class="camp-btn cp-inner" id="cp-count-m2" onclick="setCohortPeriod('m2',this,'count')">M2 (+2 meses)</button>
+        </div>
         <div class="chart-wrap" style="height:220px"><canvas id="chart-cohort-count"></canvas></div>
       </div>
       <div class="chart-card">
-        <h3>TPV Incremental por Cohort de Conversión (solo potenciados)</h3>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;margin-bottom:4px">
+          <h3 style="margin:0">TPV Incremental por Cohort (solo potenciados)</h3>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+          <button class="camp-btn cp-inner active" id="cp-tpv-all" onclick="setCohortPeriod('all',this,'tpv')">Todos</button>
+          <button class="camp-btn cp-inner" id="cp-tpv-m0" onclick="setCohortPeriod('m0',this,'tpv')">M0 — Incremental</button>
+          <button class="camp-btn cp-inner" id="cp-tpv-m1" onclick="setCohortPeriod('m1',this,'tpv')">M1 — Incremental</button>
+          <button class="camp-btn cp-inner" id="cp-tpv-m2" onclick="setCohortPeriod('m2',this,'tpv')">M2 — Incremental</button>
+        </div>
         <div class="chart-wrap" style="height:260px"><canvas id="chart-cohort"></canvas></div>
       </div>
     </div>
@@ -584,7 +594,7 @@ document.getElementById('upd-funnel').textContent=UPDATED||'-';
 // ══════════════════════════════════════════════════════════════════
 // SECCIÓN TPV INCREMENTAL
 // ══════════════════════════════════════════════════════════════════
-var tpvTL='all', cohortPeriod='m0', cohortChartInst=null, cohortCountChartInst=null;
+var tpvTL='all', cohortPeriod='all', cohortChartInst=null, cohortCountChartInst=null;
 
 function setTpvTL(val,btn){
   tpvTL=val;
