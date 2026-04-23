@@ -590,7 +590,7 @@ document.getElementById('upd-funnel').textContent=UPDATED||'-';
 // ══════════════════════════════════════════════════════════════════
 // SECCIÓN TPV INCREMENTAL
 // ══════════════════════════════════════════════════════════════════
-var tpvTL='all', cohortPeriod='m0', cohortChartInst=null;
+var tpvTL='all', cohortPeriod='m0', cohortChartInst=null, cohortCountChartInst=null;
 
 function setTpvTL(val,btn){
   tpvTL=val;
@@ -732,6 +732,7 @@ function renderCohortTable(rows){
 function renderTpvSection(){
   var rows=getCohortFiltered();
   renderCohortKPIs(rows);
+  renderCohortCountChart();
   renderCohortChart();
   renderCohortTable(rows);
 }
