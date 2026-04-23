@@ -711,7 +711,7 @@ function renderCohortCountChart(){
   cohortCountChartInst=new Chart(ctx,{
     type:'bar',data:{labels:labels,datasets:ds},
     options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{position:'top'},tooltip:{callbacks:{label:function(c){return c.dataset.label+': '+c.parsed.y+' vendedores';}}}},
+      plugins:{legend:{position:'top'},tooltip:{callbacks:{label:function(c){return c.dataset.label+': '+c.parsed.y+' vendedores';}}},datalabels:{anchor:'end',align:'end',formatter:function(v){return v>0?v:'';},font:{size:10,weight:'bold'},color:'#374151',padding:2},
       scales:{x:{grid:{display:false}},y:{beginAtZero:true,ticks:{stepSize:1,callback:function(v){return Number.isInteger(v)?v:'';}}}}
     }
   });
