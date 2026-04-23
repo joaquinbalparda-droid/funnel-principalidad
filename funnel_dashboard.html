@@ -257,7 +257,7 @@ function setFTL(tl,el){
 function aggByAdvisor(camp,sub,tl){
   var map={};
   DATA.forEach(function(r){
-    if(r.campana!==camp)return;
+    if(camp!=='TOTAL'&&r.campana!==camp)return;
     if(camp==='PROMO CUOTAS'&&sub!==null&&r.sub!==sub)return;
     if(tl!=='all'&&r.tl!==tl)return;
     var k=r.name;
