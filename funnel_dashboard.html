@@ -347,7 +347,7 @@ function renderFunnelTable(rows){
       '<td>'+r.name+'</td>'+
       '<td>'+r.leads+'</td>'+
       '<td><span class="pill '+cc+'">'+r.cont_pct+'%</span></td>'+
-      '<td><span class="pill '+vc+'">'+r.conv_pct+'%</span></td>'+
+      '<td><span class="pill '+vc+'">'+r.conv_pct+'% <small style="opacity:0.75;font-weight:500">('+r.conv+')</small></span></td>'+
       '<td><span style="'+rechStyle(r.rech_pct)+'">'+r.rech_pct+'%</span></td>'+
       '<td>'+r.neg+'</td><td>'+r.pend+'</td>'+
       '<td>'+(r.pot>0?'<span class="pill high">'+r.pot+'</span>':'-')+'</td>'+
