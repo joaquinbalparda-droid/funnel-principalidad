@@ -401,26 +401,18 @@ function renderFunnelTable(rows){
 
 function renderTPVStrip(){
   if(!TPV_DATA||TPV_DATA.length===0){document.getElementById('tpv-strip').innerHTML='';return;}
-  var totals={tl:{},total:{tpv_m0p:0,tpv_m1:0,pot:0,conv:0}};
-  var seen={};
+  // Suma total de sellers potenciados + TPV across TODAS las campanas
+  var total={tpv_m0p:0,tpv_m1:0,pot:0,conv:0};
   TPV_DATA.forEach(function(r){
-    if(r.campana!=='TOTAL')return;
-    var k=r.name;
-    if(!seen[k]){seen[k]=true;
-      if(!totals.tl[r.tl])totals.tl[r.tl]={tpv_m0p:0,tpv_m1:0,pot:0};
-      totals.tl[r.tl].tpv_m0p+=r.tpv_m0p||0;
-      totals.tl[r.tl].tpv_m1+=r.tpv_m1||0;
-      totals.tl[r.tl].pot+=r.pot||0;
-      totals.total.tpv_m0p+=r.tpv_m0p||0;
-      totals.total.tpv_m1+=r.tpv_m1||0;
-      totals.total.pot+=r.pot||0;
-    }
-    totals.total.conv+=r.conv||0;
+    total.tpv_m0p += r.tpv_m0p||0;
+    total.tpv_m1  += r.tpv_m1||0;
+    total.pot     += r.pot||0;
+    total.conv    += r.conv||0;
   });
-  var html=
-    '<div class="tpv-card"><div class="tpv-label">TPV M0 Proyectado</div><div class="tpv-value">$'+fmtM(totals.total.tpv_m0p)+'</div><div class="tpv-sub">M1: $'+fmtM(totals.total.tpv_m1)+'</div></div>'+
-    '<div class="tpv-card inc"><div class="tpv-label">Potenciados</div><div class="tpv-value">'+totals.total.pot+'</div><div class="tpv-sub">asesores con TPV creciente</div></div>';
-  document.getElementById('tpv-strip').innerHTML=html;
+  var h=
+    '<div class="tpv-card"><div class="tpv-label">TPV M0 Proyectado (Potenciados)</div><div class="tpv-value">$'+fmtM(total.tpv_m0p)+'</div><div class="tpv-sub">M1: $'+fmtM(total.tpv_m1)+'</div></div>'+
+    '<div class="tpv-card inc"><div class="tpv-label">Potenciados</div><div class="tpv-value">'+total.pot+'</div><div class="tpv-sub">comercios potenciados</div></div>';
+  document.getElementById('tpv-strip').innerHTML=h;
 }
 
 function renderFunnel(){
