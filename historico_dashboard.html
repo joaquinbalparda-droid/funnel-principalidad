@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Historico Principalidad</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
+  <style>
+    :root{--bg:#f0f2f5;--card:#fff;--header:#1a1a2e;--text:#1a1a2e;--muted:#6b7280;--border:#e5e7eb;--radius:10px;--gap:14px;--mjo:#3483FA;--ag:#e6b800;--fq:#00A650;--sz:#FF7733;--pos:#16a34a;--neg:#dc2626;}
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);font-size:14px;}
+    .header{background:var(--header);color:#fff;padding:16px 24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;}
+    .header h1{font-size:18px;font-weight:700;}
+    .header-right{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+    .last-updated{font-size:12px;color:#aaa;}
+    .nav-link{background:#3483FA;color:#fff;font-size:12px;font-weight:700;padding:5px 14px;border-radius:12px;text-decoration:none;transition:opacity .15s;}
+    .nav-link:hover{opacity:.85;}
+    .container{max-width:1440px;margin:0 auto;padding:var(--gap);}
+    /* Filters */
+    .filter-bar{display:flex;gap:8px;margin-bottom:var(--gap);flex-wrap:wrap;align-items:center;background:var(--card);padding:12px 16px;border-radius:var(--radius);box-shadow:0 1px 3px rgba(0,0,0,.07);}
+    .filter-label{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-right:4px;}
+    .tl-btn{padding:6px 16px;border-radius:16px;border:2px solid var(--border);background:var(--card);cursor:pointer;font-size:13px;font-weight:700;transition:all .15s;}
+    .tl-btn.all.active{background:var(--header);border-color:var(--header);color:#fff;}
+    .tl-btn.mjo{border-color:var(--mjo);color:var(--mjo);}.tl-btn.mjo.active{background:var(--mjo);color:#fff;}
+    .tl-btn.ag{border-color:var(--ag);color:var(--ag);}.tl-btn.ag.active{background:var(--ag);color:#fff;}
+    .tl-btn.fq{border-color:var(--fq);color:var(--fq);}.tl-btn.fq.active{background:var(--fq);color:#fff;}
+    .tl-btn.sz{border-color:var(--sz);color:var(--sz);}.tl-btn.sz.active{background:var(--sz);color:#fff;}
+    .filter-sep{width:1px;height:28px;background:var(--border);margin:0 6px;}
+    .asesor-select{padding:6px 12px;border-radius:8px;border:2px solid var(--border);font-size:13px;font-weight:600;color:var(--text);background:var(--card);cursor:pointer;min-width:200px;}
+    .desglosar-btn{padding:6px 16px;border-radius:16px;border:2px solid var(--border);background:var(--card);cursor:pointer;font-size:12px;font-weight:700;color:var(--muted);transition:all .15s;margin-left:auto;}
+    .desglosar-btn.active{border-color:#8b5cf6;background:#8b5cf6;color:#fff;}
+    /* KPIs */
+    .kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:var(--gap);margin-bottom:var(--gap);}
+    .kpi{background:var(--card);border-radius:var(--radius);padding:14px 18px;box-shadow:0 1px 3px rgba(0,0,0,.07);border-top:4px solid transparent;}
+    .kpi.leads{border-color:#3483FA;}.kpi.cont{border-color:#00A650;}.kpi.contpct{border-color:#00A650;}
+    .kpi.contdia{border-color:#0ea5e9;}.kpi.contasesor{border-color:#0ea5e9;}
+    .kpi.conv{border-color:#8b5cf6;}.kpi.convpct{border-color:#8b5cf6;}
+    .kpi.rech{border-color:#e53935;}.kpi.rechpct{border-color:#e53935;}
+    .kpi-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:4px;}
+    .kpi-value{font-size:24px;font-weight:800;color:var(--text);line-height:1.1;}
+    .kpi-sub{font-size:12px;color:var(--muted);margin-top:4px;}
+    .kpi-delta{font-size:12px;font-weight:700;margin-top:3px;}
+    .kpi-delta.up{color:var(--pos);}.kpi-delta.down{color:var(--neg);}.kpi-delta.flat{color:var(--muted);}
+    /* Charts */
+    .charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--gap);margin-bottom:var(--gap);}
+    @media(max-width:900px){.charts-grid{grid-template-columns:1fr;}}
+    .chart-card{background:var(--card);border-radius:var(--radius);padding:18px 20px;box-shadow:0 1px 3px rgba(0,0,0,.07);}
+    .chart-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+    .chart-title{font-size:13px;font-weight:700;}
+    .chart-wrap{position:relative;height:240px;}
+    /* Table */
+    .table-card{background:var(--card);border-radius:var(--radius);padding:18px 20px;box-shadow:0 1px 3px rgba(0,0,0,.07);margin-bottom:var(--gap);}
+    .table-card h3{font-size:14px;font-weight:700;margin-bottom:14px;}
+    .table-wrap{overflow-x:auto;}
+    table{width:100%;border-collapse:collapse;font-size:13px;}
+    th{padding:9px 11px;text-align:right;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);border-bottom:2px solid var(--border);cursor:pointer;white-space:nowrap;user-select:none;}
+    th:first-child{text-align:left;}
+    th:hover{color:var(--text);}
+    td{padding:9px 11px;border-bottom:1px solid var(--border);text-align:right;}
+    td:first-child{text-align:left;font-weight:700;}
+    tr:last-child td{border-bottom:none;}
+    tr:hover td{background:#f9fafb;}
+    .pill{display:inline-block;padding:1px 8px;border-radius:10px;font-size:11px;font-weight:700;}
+    .pill.high{background:#d1fae5;color:#065f46;}.pill.mid{background:#fef3c7;color:#92400e;}.pill.low{background:#fee2e2;color:#991b1b;}
+    .tl-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:middle;}
+    footer{text-align:center;padding:16px;font-size:12px;color:var(--muted);}
+  </style>
+</head>
+<body>
+<div class="header">
+  <div><h1>Historico Principalidad &mdash; Evolucion de Gestion</h1></div>
+  <div class="header-right">
+    <span class="last-updated" id="last-updated">Sin datos</span>
+    <a class="nav-link" href="funnel_dashboard.html">Ver Funnel Mes Actual &rarr;</a>
+  </div>
+</div>
+<div class="container">
+  <div class="filter-bar">
+    <span class="filter-label">TL:</span>
+    <button class="tl-btn all active" onclick="setTL('all',this)">Todos</button>
+    <button class="tl-btn mjo" onclick="setTL('mjo',this)">MJO</button>
+    <button class="tl-btn ag"  onclick="setTL('ag',this)">AG</button>
+    <button class="tl-btn fq"  onclick="setTL('fq',this)">FQ</button>
+    <button class="tl-btn sz"  onclick="setTL('sz',this)">SZ</button>
+    <div class="filter-sep"></div>
+    <span class="filter-label">Asesor:</span>
+    <select class="asesor-select" id="asesor-select" onchange="setAsesor(this.value)">
+      <option value="all">Todos los asesores</option>
+    </select>
+    <button class="desglosar-btn" id="desglosar-btn" onclick="toggleDesglosar()">Desglosar por TL</button>
+  </div>
+  <div class="kpi-row" id="kpi-row"></div>
+  <div class="charts-grid">
+    <div class="chart-card">
+      <div class="chart-header"><span class="chart-title">Contactabilidad % por mes</span><span id="lbl-cont" style="font-size:12px;color:var(--muted)"></span></div>
+      <div class="chart-wrap"><canvas id="chart-cont"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-header"><span class="chart-title">Contactados / Dia Habil</span><span id="lbl-contdia" style="font-size:12px;color:var(--muted)"></span></div>
+      <div class="chart-wrap"><canvas id="chart-contdia"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-header"><span class="chart-title">Conversion % por mes</span><span id="lbl-conv" style="font-size:12px;color:var(--muted)"></span></div>
+      <div class="chart-wrap"><canvas id="chart-conv"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-header"><span class="chart-title">Rechazados % por mes</span><span id="lbl-rech" style="font-size:12px;color:var(--muted)"></span></div>
+      <div class="chart-wrap"><canvas id="chart-rech"></canvas></div>
+    </div>
+  </div>
+  <div class="table-card">
+    <h3 id="table-title">Evolucion mensual</h3>
+    <div class="table-wrap"><table>
+      <thead><tr>
+        <th style="text-align:left">Mes</th>
+        <th>Leads</th>
+        <th>Contactados</th>
+        <th>Cont%</th>
+        <th>Cont/Dia</th>
+        <th>Cont/Asesor</th>
+        <th>Convertidos</th>
+        <th>Conv%</th>
+        <th>Rechazados</th>
+        <th>Rech%</th>
+        <th>En Neg.</th>
+        <th>Potenciados</th>
+      </tr></thead>
+      <tbody id="hist-tbody"></tbody>
+    </table></div>
+  </div>
+</div>
+<footer>Historico Principalidad &middot; MercadoPago &middot; <span id="footer-updated">-</span> &middot; BigQuery</footer>
+<script>
+/* %%UPDATED%% */var UPDATED='23/04/2026 09:38';
+/* %%DATA_LINE%% */var DATA=[{"mes":202511,"dh":19,"tl":"ag","name":"Alejandro Diaz","leads":138,"cont":59,"conv":1,"rech":16,"neg":3,"pend":40,"pot":0},{"mes":202511,"dh":19,"tl":"ag","name":"Camila Coca","leads":122,"cont":61,"conv":2,"rech":19,"neg":6,"pend":30,"pot":0},{"mes":202511,"dh":19,"tl":"ag","name":"Catalina Fernandez","leads":139,"cont":68,"conv":6,"rech":48,"neg":4,"pend":10,"pot":0},{"mes":202511,"dh":19,"tl":"ag","name":"Diego Moreno","leads":128,"cont":56,"conv":4,"rech":34,"neg":6,"pend":13,"pot":0},{"mes":202511,"dh":19,"tl":"ag","name":"Emanuel Dursi","leads":127,"cont":58,"conv":3,"rech":16,"neg":4,"pend":34,"pot":0},{"mes":202511,"dh":19,"tl":"ag","name":"Federico Vitabile","leads":130,"cont":76,"conv":9,"rech":29,"neg":13,"pend":27,"pot":0},{"mes":202511,"dh":19,"tl":"ag","name":"Matias Mesiano","leads":135,"cont":69,"conv":2,"rech":28,"neg":7,"pend":32,"pot":0},{"mes":202511,"dh":19,"tl":"mjo","name":"Agustin Diz","leads":150,"cont":69,"conv":7,"rech":28,"neg":7,"pend":27,"pot":0},{"mes":202511,"dh":19,"tl":"mjo","name":"Carolina Delgado","leads":137,"cont":97,"conv":6,"rech":81,"neg":7,"pend":3,"pot":0},{"mes":202511,"dh":19,"tl":"mjo","name":"Juan Cruz Rial","leads":122,"cont":98,"conv":5,"rech":59,"neg":6,"pend":28,"pot":0},{"mes":202511,"dh":19,"tl":"mjo","name":"Manuel Elizarraga","leads":125,"cont":91,"conv":4,"rech":79,"neg":5,"pend":3,"pot":0},{"mes":202511,"dh":19,"tl":"mjo","name":"Soledad Maydana","leads":114,"cont":73,"conv":2,"rech":51,"neg":5,"pend":13,"pot":0},{"mes":202512,"dh":21,"tl":"ag","name":"Alejandro Diaz","leads":183,"cont":75,"conv":5,"rech":22,"neg":2,"pend":41,"pot":0},{"mes":202512,"dh":21,"tl":"ag","name":"Camila Coca","leads":190,"cont":47,"conv":5,"rech":15,"neg":7,"pend":15,"pot":0},{"mes":202512,"dh":21,"tl":"ag","name":"Catalina Fernandez","leads":193,"cont":137,"conv":10,"rech":94,"neg":16,"pend":18,"pot":0},{"mes":202512,"dh":21,"tl":"ag","name":"Diego Moreno","leads":192,"cont":72,"conv":4,"rech":33,"neg":5,"pend":20,"pot":0},{"mes":202512,"dh":21,"tl":"ag","name":"Emanuel Dursi","leads":194,"cont":79,"conv":6,"rech":30,"neg":11,"pend":32,"pot":0},{"mes":202512,"dh":21,"tl":"ag","name":"Federico Vitabile","leads":201,"cont":95,"conv":10,"rech":26,"neg":9,"pend":41,"pot":0},{"mes":202512,"dh":21,"tl":"ag","name":"Matias Mesiano","leads":196,"cont":38,"conv":3,"rech":16,"neg":5,"pend":14,"pot":0},{"mes":202512,"dh":21,"tl":"mjo","name":"Agustin Diz","leads":195,"cont":62,"conv":3,"rech":23,"neg":14,"pend":23,"pot":0},{"mes":202512,"dh":21,"tl":"mjo","name":"Carolina Delgado","leads":196,"cont":113,"conv":11,"rech":66,"neg":13,"pend":21,"pot":0},{"mes":202512,"dh":21,"tl":"mjo","name":"Juan Cruz Rial","leads":194,"cont":68,"conv":9,"rech":35,"neg":11,"pend":33,"pot":0},{"mes":202512,"dh":21,"tl":"mjo","name":"Manuel Elizarraga","leads":185,"cont":130,"conv":9,"rech":80,"neg":12,"pend":28,"pot":0},{"mes":202512,"dh":21,"tl":"mjo","name":"Soledad Maydana","leads":188,"cont":137,"conv":12,"rech":79,"neg":11,"pend":23,"pot":0},{"mes":202601,"dh":21,"tl":"ag","name":"Alejandro Diaz","leads":101,"cont":54,"conv":10,"rech":25,"neg":6,"pend":13,"pot":0},{"mes":202601,"dh":21,"tl":"ag","name":"Camila Coca","leads":103,"cont":57,"conv":9,"rech":27,"neg":6,"pend":14,"pot":0},{"mes":202601,"dh":21,"tl":"ag","name":"Catalina Fernandez","leads":136,"cont":104,"conv":9,"rech":65,"neg":8,"pend":24,"pot":0},{"mes":202601,"dh":21,"tl":"ag","name":"Diego Moreno","leads":135,"cont":77,"conv":7,"rech":48,"neg":6,"pend":15,"pot":0},{"mes":202601,"dh":21,"tl":"ag","name":"Emanuel Dursi","leads":113,"cont":71,"conv":7,"rech":30,"neg":8,"pend":25,"pot":0},{"mes":202601,"dh":21,"tl":"ag","name":"Federico Vitabile","leads":139,"cont":99,"conv":10,"rech":45,"neg":4,"pend":40,"pot":0},{"mes":202601,"dh":21,"tl":"ag","name":"Giselda Allende","leads":104,"cont":63,"conv":6,"rech":42,"neg":3,"pend":12,"pot":0},{"mes":202601,"dh":21,"tl":"ag","name":"Matias Mesiano","leads":136,"cont":94,"conv":6,"rech":49,"neg":5,"pend":34,"pot":0},{"mes":202601,"dh":21,"tl":"fq","name":"Barbara Nuñez","leads":134,"cont":96,"conv":5,"rech":76,"neg":4,"pend":11,"pot":0},{"mes":202601,"dh":21,"tl":"fq","name":"Diana Fraser","leads":101,"cont":67,"conv":7,"rech":50,"neg":4,"pend":2,"pot":0},{"mes":202601,"dh":21,"tl":"fq","name":"Francelys Perez","leads":99,"cont":66,"conv":3,"rech":42,"neg":2,"pend":19,"pot":0},{"mes":202601,"dh":21,"tl":"fq","name":"Luciana Pisacco","leads":98,"cont":69,"conv":2,"rech":46,"neg":1,"pend":17,"pot":0},{"mes":202601,"dh":21,"tl":"fq","name":"Sebastian Jansa","leads":97,"cont":70,"conv":7,"rech":49,"neg":4,"pend":10,"pot":0},{"mes":202601,"dh":21,"tl":"mjo","name":"Agustin Diz","leads":109,"cont":59,"conv":6,"rech":24,"neg":9,"pend":20,"pot":0},{"mes":202601,"dh":21,"tl":"mjo","name":"Carolina Delgado","leads":169,"cont":123,"conv":9,"rech":86,"neg":12,"pend":16,"pot":0},{"mes":202601,"dh":21,"tl":"mjo","name":"Juan Cruz Rial","leads":115,"cont":90,"conv":7,"rech":49,"neg":7,"pend":27,"pot":0},{"mes":202601,"dh":21,"tl":"mjo","name":"Manuel Elizarraga","leads":157,"cont":122,"conv":8,"rech":81,"neg":9,"pend":24,"pot":0},{"mes":202601,"dh":21,"tl":"mjo","name":"Mariana Gonzalez","leads":105,"cont":66,"conv":1,"rech":29,"neg":2,"pend":31,"pot":0},{"mes":202601,"dh":21,"tl":"mjo","name":"Soledad Maydana","leads":131,"cont":99,"conv":6,"rech":60,"neg":9,"pend":16,"pot":0},{"mes":202602,"dh":18,"tl":"ag","name":"Alejandro Diaz","leads":147,"cont":65,"conv":2,"rech":35,"neg":5,"pend":23,"pot":0},{"mes":202602,"dh":18,"tl":"ag","name":"Camila Coca","leads":146,"cont":58,"conv":7,"rech":16,"neg":10,"pend":17,"pot":0},{"mes":202602,"dh":18,"tl":"ag","name":"Catalina Fernandez","leads":107,"cont":81,"conv":4,"rech":51,"neg":13,"pend":13,"pot":0},{"mes":202602,"dh":18,"tl":"ag","name":"Diego Moreno","leads":152,"cont":55,"conv":3,"rech":22,"neg":1,"pend":18,"pot":0},{"mes":202602,"dh":18,"tl":"ag","name":"Emanuel Dursi","leads":148,"cont":65,"conv":7,"rech":29,"neg":3,"pend":26,"pot":0},{"mes":202602,"dh":18,"tl":"ag","name":"Federico Vitabile","leads":159,"cont":78,"conv":9,"rech":30,"neg":6,"pend":34,"pot":0},{"mes":202602,"dh":18,"tl":"ag","name":"Giselda Allende","leads":146,"cont":102,"conv":5,"rech":77,"neg":10,"pend":11,"pot":0},{"mes":202602,"dh":18,"tl":"ag","name":"Matias Mesiano","leads":186,"cont":107,"conv":12,"rech":70,"neg":3,"pend":22,"pot":0},{"mes":202602,"dh":18,"tl":"fq","name":"Barbara Nuñez","leads":178,"cont":116,"conv":7,"rech":89,"neg":2,"pend":3,"pot":0},{"mes":202602,"dh":18,"tl":"fq","name":"Diana Fraser","leads":145,"cont":110,"conv":9,"rech":76,"neg":5,"pend":5,"pot":0},{"mes":202602,"dh":18,"tl":"fq","name":"Francelys Perez","leads":142,"cont":96,"conv":5,"rech":68,"neg":1,"pend":21,"pot":0},{"mes":202602,"dh":18,"tl":"fq","name":"Luciana Pisacco","leads":147,"cont":90,"conv":6,"rech":55,"neg":6,"pend":23,"pot":0},{"mes":202602,"dh":18,"tl":"fq","name":"Sebastian Jansa","leads":155,"cont":116,"conv":8,"rech":72,"neg":13,"pend":25,"pot":0},{"mes":202602,"dh":18,"tl":"mjo","name":"Agustin Diz","leads":152,"cont":70,"conv":8,"rech":33,"neg":8,"pend":21,"pot":0},{"mes":202602,"dh":18,"tl":"mjo","name":"Carolina Delgado","leads":161,"cont":136,"conv":13,"rech":108,"neg":6,"pend":8,"pot":0},{"mes":202602,"dh":18,"tl":"mjo","name":"Juan Cruz Rial","leads":154,"cont":101,"conv":9,"rech":58,"neg":8,"pend":26,"pot":0},{"mes":202602,"dh":18,"tl":"mjo","name":"Manuel Elizarraga","leads":79,"cont":50,"conv":3,"rech":17,"neg":3,"pend":27,"pot":0},{"mes":202602,"dh":18,"tl":"mjo","name":"Mariana Gonzalez","leads":150,"cont":64,"conv":9,"rech":33,"neg":6,"pend":13,"pot":0},{"mes":202602,"dh":18,"tl":"mjo","name":"Soledad Maydana","leads":150,"cont":54,"conv":11,"rech":27,"neg":3,"pend":13,"pot":0},{"mes":202603,"dh":20,"tl":"ag","name":"Alejandro Diaz","leads":183,"cont":95,"conv":6,"rech":42,"neg":8,"pend":38,"pot":0},{"mes":202603,"dh":20,"tl":"ag","name":"Analia Maisonnave","leads":45,"cont":0,"conv":0,"rech":0,"neg":0,"pend":0,"pot":0},{"mes":202603,"dh":20,"tl":"ag","name":"Camila Coca","leads":185,"cont":100,"conv":10,"rech":40,"neg":8,"pend":31,"pot":0},{"mes":202603,"dh":20,"tl":"ag","name":"Catalina Fernandez","leads":212,"cont":128,"conv":11,"rech":84,"neg":7,"pend":27,"pot":0},{"mes":202603,"dh":20,"tl":"ag","name":"Diego Moreno","leads":188,"cont":112,"conv":18,"rech":52,"neg":5,"pend":32,"pot":0},{"mes":202603,"dh":20,"tl":"ag","name":"Emanuel Dursi","leads":186,"cont":87,"conv":9,"rech":46,"neg":11,"pend":19,"pot":0},{"mes":202603,"dh":20,"tl":"ag","name":"Federico Vitabile","leads":189,"cont":92,"conv":13,"rech":17,"neg":8,"pend":53,"pot":0},{"mes":202603,"dh":20,"tl":"ag","name":"Giselda Allende","leads":187,"cont":112,"conv":10,"rech":47,"neg":14,"pend":16,"pot":0},{"mes":202603,"dh":20,"tl":"ag","name":"Matias Mesiano","leads":206,"cont":121,"conv":10,"rech":89,"neg":6,"pend":15,"pot":0},{"mes":202603,"dh":20,"tl":"fq","name":"Azul Pacioni","leads":45,"cont":0,"conv":0,"rech":0,"neg":0,"pend":0,"pot":0},{"mes":202603,"dh":20,"tl":"fq","name":"Barbara Nuñez","leads":205,"cont":156,"conv":8,"rech":103,"neg":0,"pend":21,"pot":0},{"mes":202603,"dh":20,"tl":"fq","name":"Diana Fraser","leads":190,"cont":150,"conv":15,"rech":96,"neg":8,"pend":0,"pot":0},{"mes":202603,"dh":20,"tl":"fq","name":"Francelys Perez","leads":178,"cont":101,"conv":7,"rech":76,"neg":1,"pend":16,"pot":0},{"mes":202603,"dh":20,"tl":"fq","name":"Joaquin Lescano","leads":45,"cont":0,"conv":0,"rech":0,"neg":0,"pend":0,"pot":0},{"mes":202603,"dh":20,"tl":"fq","name":"Luciana Pisacco","leads":179,"cont":114,"conv":4,"rech":65,"neg":4,"pend":29,"pot":0},{"mes":202603,"dh":20,"tl":"fq","name":"Micaela Marsuzi","leads":45,"cont":0,"conv":0,"rech":0,"neg":0,"pend":0,"pot":0},{"mes":202603,"dh":20,"tl":"fq","name":"Sebastian Jansa","leads":189,"cont":138,"conv":12,"rech":88,"neg":2,"pend":36,"pot":0},{"mes":202603,"dh":20,"tl":"mjo","name":"Agustin Diz","leads":188,"cont":102,"conv":6,"rech":57,"neg":7,"pend":32,"pot":0},{"mes":202603,"dh":20,"tl":"mjo","name":"Carolina Delgado","leads":182,"cont":111,"conv":7,"rech":88,"neg":4,"pend":12,"pot":0},{"mes":202603,"dh":20,"tl":"mjo","name":"Juan Cruz Rial","leads":180,"cont":92,"conv":11,"rech":41,"neg":7,"pend":32,"pot":0},{"mes":202603,"dh":20,"tl":"mjo","name":"Julian Torres","leads":45,"cont":0,"conv":0,"rech":0,"neg":0,"pend":0,"pot":0},{"mes":202603,"dh":20,"tl":"mjo","name":"Manuel Elizarraga","leads":206,"cont":144,"conv":9,"rech":95,"neg":2,"pend":38,"pot":0},{"mes":202603,"dh":20,"tl":"mjo","name":"Mariana Gonzalez","leads":183,"cont":87,"conv":2,"rech":53,"neg":5,"pend":28,"pot":0},{"mes":202603,"dh":20,"tl":"mjo","name":"Rocio Angueira","leads":45,"cont":0,"conv":0,"rech":0,"neg":0,"pend":0,"pot":0},{"mes":202603,"dh":20,"tl":"mjo","name":"Soledad Maydana","leads":181,"cont":139,"conv":7,"rech":83,"neg":14,"pend":31,"pot":0},{"mes":202603,"dh":20,"tl":"sz","name":"Cristina Hsieh","leads":41,"cont":0,"conv":0,"rech":0,"neg":0,"pend":0,"pot":0}];
+
+/* ── CONSTANTES ───────────────────────────────────────────────── */
+var TL_COLORS  = {mjo:'#3483FA', ag:'#e6b800', fq:'#00A650', sz:'#FF7733'};
+var TL_NAMES   = {mjo:'MJO', ag:'AG', fq:'FQ', sz:'SZ'};
+var TL_LIST    = ['mjo','ag','fq','sz'];
+
+/* Mes => "Nov '25" */
+function mesLabel(m){
+  var MESES=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  var s=m.toString();
+  return MESES[parseInt(s.slice(4,6))-1]+" '"+s.slice(2,4);
+}
+
+/* ── ESTADO ───────────────────────────────────────────────────── */
+var CUR_TL       = 'all';
+var CUR_ASESOR   = 'all';
+var DESGLOSAR    = false;
+var CHARTS       = {};
+
+/* ── UTILS ────────────────────────────────────────────────────── */
+function pct(a,b){return b>0?Math.round(a/b*100):0;}
+function fmt1(n){return n>=1000?(n/1000).toFixed(1)+'K':n.toString();}
+function fmtF(n){return n.toFixed(1);}
+function sign(n){return n>0?'+':'';}
+
+/* ── FILTRADO ─────────────────────────────────────────────────── */
+function getFiltered(){
+  return DATA.filter(function(r){
+    if(CUR_TL!=='all'&&r.tl!==CUR_TL)return false;
+    if(CUR_ASESOR!=='all'&&r.name!==CUR_ASESOR)return false;
+    return true;
+  });
+}
+
+/* Agrega filas por mes (devuelve array ordenado por mes) */
+function aggByMes(rows){
+  var map={};
+  rows.forEach(function(r){
+    if(!map[r.mes]) map[r.mes]={mes:r.mes,dh:r.dh,leads:0,cont:0,conv:0,rech:0,neg:0,pend:0,pot:0,names:new Set()};
+    var a=map[r.mes];
+    a.leads+=r.leads; a.cont+=r.cont; a.conv+=r.conv;
+    a.rech+=r.rech;   a.neg+=r.neg;   a.pend+=r.pend; a.pot+=r.pot;
+    a.names.add(r.name);
+  });
+  return Object.values(map).map(function(a){a.n=a.names.size;delete a.names;return a;})
+    .sort(function(a,b){return a.mes<b.mes?-1:1;});
+}
+
+/* Agrega por mes para un TL especifico */
+function aggByMesTL(tl){
+  return aggByMes(DATA.filter(function(r){return r.tl===tl;}));
+}
+
+/* ── CONTROLES ────────────────────────────────────────────────── */
+function setTL(tl,el){
+  CUR_TL=tl; CUR_ASESOR='all';
+  document.querySelectorAll('.tl-btn').forEach(function(b){b.classList.remove('active');});
+  el.classList.add('active');
+  populateAsesores();
+  render();
+}
+function setAsesor(val){
+  CUR_ASESOR=val;
+  if(val!=='all') DESGLOSAR=false;
+  syncDesglosarBtn();
+  render();
+}
+function toggleDesglosar(){
+  if(CUR_ASESOR!=='all') return;
+  DESGLOSAR=!DESGLOSAR;
+  syncDesglosarBtn();
+  render();
+}
+function syncDesglosarBtn(){
+  var btn=document.getElementById('desglosar-btn');
+  if(DESGLOSAR) btn.classList.add('active'); else btn.classList.remove('active');
+}
+
+function populateAsesores(){
+  var sel=document.getElementById('asesor-select');
+  var rows=CUR_TL==='all'?DATA:DATA.filter(function(r){return r.tl===CUR_TL;});
+  var names=[...new Set(rows.map(function(r){return r.name;}))].sort();
+  sel.innerHTML='<option value="all">Todos los asesores</option>';
+  names.forEach(function(n){
+    var o=document.createElement('option');
+    o.value=n; o.textContent=n;
+    if(n===CUR_ASESOR) o.selected=true;
+    sel.appendChild(o);
+  });
+}
+
+/* ── RENDER PRINCIPAL ─────────────────────────────────────────── */
+function render(){
+  document.getElementById('last-updated').textContent='Actualizado: '+UPDATED;
+  document.getElementById('footer-updated').textContent=UPDATED;
+  renderKPIs();
+  renderCharts();
+  renderTable();
+}
+
+/* ── KPIs (ultimo mes disponible vs anterior) ─────────────────── */
+function renderKPIs(){
+  var series=aggByMes(getFiltered());
+  if(!series.length){document.getElementById('kpi-row').innerHTML='<div style="color:var(--muted);padding:10px">Sin datos</div>';return;}
+  var last=series[series.length-1];
+  var prev=series.length>1?series[series.length-2]:null;
+
+  function delta(curr,prv,field){
+    if(!prv||prv[field]===0)return '';
+    var d=curr[field]-prv[field];
+    var cls=d>=0?'up':'down';
+    return '<div class="kpi-delta '+cls+'">'+(d>=0?'+':'')+d+' vs '+mesLabel(prv.mes)+'</div>';
+  }
+  function deltaPct(curr,prv,fn){
+    if(!prv)return '';
+    var c=fn(curr), p=fn(prv);
+    if(p===0)return '';
+    var d=c-p;
+    var cls=d>=0?'up':'down';
+    return '<div class="kpi-delta '+cls+'">'+(d>=0?'+':'')+d.toFixed(1)+'pp vs '+mesLabel(prv.mes)+'</div>';
+  }
+
+  var contPct=pct(last.cont,last.leads);
+  var convPct=pct(last.conv,last.cont);
+  var rechPct=pct(last.rech,last.cont);
+  var contDia=last.dh>0?(last.cont/last.dh).toFixed(1):'-';
+  var contAsesor=last.n>0?(last.cont/last.n).toFixed(1):'-';
+
+  var cards=[
+    {cls:'leads',    label:'Leads',           val:fmt1(last.leads),    sub:mesLabel(last.mes), delta:delta(last,prev,'leads')},
+    {cls:'cont',     label:'Contactados',      val:fmt1(last.cont),     sub:mesLabel(last.mes), delta:delta(last,prev,'cont')},
+    {cls:'contpct',  label:'Contactabilidad',  val:contPct+'%',         sub:'del total de leads', delta:deltaPct(last,prev,function(r){return pct(r.cont,r.leads);})},
+    {cls:'contdia',  label:'Cont / Dia Hab.',  val:contDia,             sub:'contactados por dia', delta:''},
+    {cls:'contasesor',label:'Cont / Asesor',   val:contAsesor,          sub:'promedio '+last.n+' asesores', delta:''},
+    {cls:'conv',     label:'Convertidos',      val:fmt1(last.conv),     sub:mesLabel(last.mes), delta:delta(last,prev,'conv')},
+    {cls:'convpct',  label:'Conversion',       val:convPct+'%',         sub:'conv / contactados', delta:deltaPct(last,prev,function(r){return pct(r.conv,r.cont);})},
+    {cls:'rech',     label:'Rechazados',       val:fmt1(last.rech),     sub:mesLabel(last.mes), delta:delta(last,prev,'rech')},
+    {cls:'rechpct',  label:'Rechazo',          val:rechPct+'%',         sub:'rech / contactados', delta:deltaPct(last,prev,function(r){return pct(r.rech,r.cont);})},
+  ];
+
+  document.getElementById('kpi-row').innerHTML=cards.map(function(c){
+    return '<div class="kpi '+c.cls+'"><div class="kpi-label">'+c.label+'</div>'
+      +'<div class="kpi-value">'+c.val+'</div>'
+      +'<div class="kpi-sub">'+c.sub+'</div>'
+      +c.delta+'</div>';
+  }).join('');
+}
+
+/* ── CHARTS ───────────────────────────────────────────────────── */
+function destroyChart(id){if(CHARTS[id]){CHARTS[id].destroy();delete CHARTS[id];}}
+
+function buildDatasets(){
+  if(DESGLOSAR && CUR_ASESOR==='all'){
+    /* 4 series — una por TL */
+    var result={labels:[],datasets:{cont:[],contdia:[],conv:[],rech:[]}};
+    var allMeses=[...new Set(DATA.map(function(r){return r.mes;}))].sort();
+    result.labels=allMeses.map(mesLabel);
+    TL_LIST.forEach(function(tl){
+      var s=aggByMes(DATA.filter(function(r){
+        return r.tl===tl&&(CUR_ASESOR==='all'||r.name===CUR_ASESOR);
+      }));
+      var byMes={};
+      s.forEach(function(r){byMes[r.mes]=r;});
+      var contPcts=[],contDias=[],convPcts=[],rechPcts=[];
+      var contNom=[],convNom=[],rechNom=[];
+      allMeses.forEach(function(m){
+        var r=byMes[m];
+        contPcts.push(r?pct(r.cont,r.leads):null);
+        contDias.push(r&&r.dh>0?parseFloat((r.cont/r.dh).toFixed(1)):null);
+        convPcts.push(r?pct(r.conv,r.cont):null);
+        rechPcts.push(r?pct(r.rech,r.cont):null);
+        contNom.push(r?r.cont:null);
+        convNom.push(r?r.conv:null);
+        rechNom.push(r?r.rech:null);
+      });
+      var c=TL_COLORS[tl], n=TL_NAMES[tl];
+      result.datasets.cont.push({label:n+' %',data:contPcts,borderColor:c,backgroundColor:c+'30',borderWidth:2,tension:.3,pointRadius:3,fill:false,yAxisID:'yp'});
+      result.datasets.cont.push({label:n+' N',data:contNom,type:'bar',backgroundColor:c+'50',borderColor:c,borderWidth:1,yAxisID:'yn'});
+      result.datasets.contdia.push({label:n,data:contDias,borderColor:c,backgroundColor:c+'30',borderWidth:2,tension:.3,pointRadius:3,fill:false});
+      result.datasets.conv.push({label:n+' %',data:convPcts,borderColor:c,backgroundColor:c+'30',borderWidth:2,tension:.3,pointRadius:3,fill:false,yAxisID:'yp'});
+      result.datasets.conv.push({label:n+' N',data:convNom,type:'bar',backgroundColor:c+'50',borderColor:c,borderWidth:1,yAxisID:'yn'});
+      result.datasets.rech.push({label:n+' %',data:rechPcts,borderColor:c,backgroundColor:c+'30',borderWidth:2,tension:.3,pointRadius:3,fill:false,yAxisID:'yp'});
+      result.datasets.rech.push({label:n+' N',data:rechNom,type:'bar',backgroundColor:c+'50',borderColor:c,borderWidth:1,yAxisID:'yn'});
+    });
+    return result;
+  }
+
+  /* Vista consolidada */
+  var series=aggByMes(getFiltered());
+  var labels=series.map(function(r){return mesLabel(r.mes);});
+  var color='#3483FA';
+  function ds(data,label,axisId,type,color2){
+    return {label:label,data:data,borderColor:color2||color,
+      backgroundColor:(color2||color)+(type==='bar'?'50':'20'),
+      borderWidth:type==='bar'?1:2.5,tension:.3,pointRadius:3,
+      fill:type!=='bar',type:type||'line',yAxisID:axisId};
+  }
+  return {
+    labels: labels,
+    datasets:{
+      cont:[
+        ds(series.map(function(r){return r.cont;}),'Contactados','yn','bar'),
+        ds(series.map(function(r){return pct(r.cont,r.leads);}),'Cont%','yp','line','#00A650')
+      ],
+      contdia:[
+        ds(series.map(function(r){return r.dh>0?parseFloat((r.cont/r.dh).toFixed(1)):0;}),'Cont/Dia','y','bar','#0ea5e9')
+      ],
+      conv:[
+        ds(series.map(function(r){return r.conv;}),'Convertidos','yn','bar','#8b5cf6'),
+        ds(series.map(function(r){return pct(r.conv,r.cont);}),'Conv%','yp','line','#6d28d9')
+      ],
+      rech:[
+        ds(series.map(function(r){return r.rech;}),'Rechazados','yn','bar','#f87171'),
+        ds(series.map(function(r){return pct(r.rech,r.cont);}),'Rech%','yp','line','#dc2626')
+      ]
+    }
+  };
+}
+
+function dualAxisOptions(titlePct,titleN){
+  return {
+    responsive:true,maintainAspectRatio:false,
+    interaction:{mode:'index',intersect:false},
+    plugins:{legend:{position:'top',labels:{usePointStyle:true,padding:12,font:{size:11}}}},
+    scales:{
+      yn:{type:'linear',position:'left',beginAtZero:true,
+          title:{display:true,text:titleN,font:{size:10}},
+          grid:{color:'#f0f0f0'}},
+      yp:{type:'linear',position:'right',beginAtZero:true,max:100,
+          title:{display:true,text:titlePct,font:{size:10}},
+          grid:{drawOnChartArea:false},
+          ticks:{callback:function(v){return v+'%';}}}
+    }
+  };
+}
+function singleAxisOptions(label,isMoney){
+  return {
+    responsive:true,maintainAspectRatio:false,
+    interaction:{mode:'index',intersect:false},
+    plugins:{legend:{display:false}},
+    scales:{
+      y:{beginAtZero:true,title:{display:true,text:label,font:{size:10}},grid:{color:'#f0f0f0'}},
+      x:{grid:{display:false}}
+    }
+  };
+}
+
+function renderCharts(){
+  var bd=buildDatasets();
+  var labels=bd.labels;
+  var configs=[
+    {id:'chart-cont', datasets:bd.datasets.cont, opts:dualAxisOptions('%','Contactados')},
+    {id:'chart-contdia', datasets:bd.datasets.contdia, opts:singleAxisOptions('Cont/Día hábil')},
+    {id:'chart-conv', datasets:bd.datasets.conv, opts:dualAxisOptions('%','Convertidos')},
+    {id:'chart-rech', datasets:bd.datasets.rech, opts:dualAxisOptions('%','Rechazados')},
+  ];
+  configs.forEach(function(cfg){
+    destroyChart(cfg.id);
+    var ctx=document.getElementById(cfg.id).getContext('2d');
+    cfg.opts.scales.x=cfg.opts.scales.x||{grid:{display:false}};
+    CHARTS[cfg.id]=new Chart(ctx,{
+      type:'bar',
+      data:{labels:labels, datasets:cfg.datasets},
+      options:cfg.opts
+    });
+  });
+}
+
+/* ── TABLA MENSUAL ────────────────────────────────────────────── */
+function renderTable(){
+  var series=aggByMes(getFiltered());
+  var title=CUR_ASESOR!=='all'?CUR_ASESOR:CUR_TL!=='all'?'Team '+TL_NAMES[CUR_TL]:'Equipo completo';
+  document.getElementById('table-title').textContent='Evolucion mensual — '+title;
+
+  var html='';
+  series.sort(function(a,b){return a.mes<b.mes?-1:1;}).forEach(function(r){
+    var cp=pct(r.cont,r.leads);
+    var vp=pct(r.conv,r.cont);
+    var rp=pct(r.rech,r.cont);
+    var cd=r.dh>0?(r.cont/r.dh).toFixed(1):'-';
+    var ca=r.n>0?(r.cont/r.n).toFixed(1):'-';
+    html+='<tr>'
+      +'<td>'+mesLabel(r.mes)+'</td>'
+      +'<td>'+r.leads+'</td>'
+      +'<td>'+r.cont+'</td>'
+      +'<td><span class="pill '+(cp>=70?'high':cp>=40?'mid':'low')+'">'+cp+'%</span></td>'
+      +'<td>'+cd+'</td>'
+      +'<td>'+ca+'</td>'
+      +'<td>'+r.conv+'</td>'
+      +'<td><span class="pill '+(vp>=25?'high':vp>=12?'mid':'low')+'">'+vp+'%</span></td>'
+      +'<td>'+r.rech+'</td>'
+      +'<td><span class="pill '+(rp<=20?'high':rp<=35?'mid':'low')+'">'+rp+'%</span></td>'
+      +'<td>'+r.neg+'</td>'
+      +'<td>'+r.pot+'</td>'
+      +'</tr>';
+  });
+  document.getElementById('hist-tbody').innerHTML=html||'<tr><td colspan="12" style="text-align:center;color:var(--muted);padding:20px">Sin datos</td></tr>';
+}
+
+/* ── INIT ─────────────────────────────────────────────────────── */
+populateAsesores();
+render();
+</script>
+</body>
+</html>
