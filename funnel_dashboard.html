@@ -619,21 +619,34 @@ function aggCohortByMonth(rows){
   return Object.values(map).sort(function(a,b){return a.cohort-b.cohort;});
 }
 function renderCohortKPIs(rows){
-  var t={pot_m0:0,tpv_m0:0,pot_m1:0,tpv_m1:0,pot_m2:0,tpv_m2:0};
+  var t={pot_m0:0,tpv_m0:0,pot_m1:0,tpv_m1:0,pot_m2:0,tpv_m2:0,conv:0};
   rows.forEach(function(r){
+    t.conv+=r.conv||0;
     t.pot_m0+=r.pot_m0||0; t.tpv_m0+=r.tpv_inc_m0||0;
     t.pot_m1+=r.pot_m1||0; t.tpv_m1+=r.tpv_inc_m1||0;
     t.pot_m2+=r.pot_m2||0; t.tpv_m2+=r.tpv_inc_m2||0;
   });
-  function card(cls,lbl,pot,tpv){
-    return '<div class="kpi '+cls+'"><div class="kpi-label">'+lbl+'</div>'+
-      '<div class="kpi-value">'+pot+'</div>'+
-      '<div class="kpi-sub">$'+fmtM(tpv)+' incremental</div></div>';
+  function pct(n,d){return d>0?Math.round(n/d*100):0;}
+  function statCard(color,period,sellers,conv,tpv){
+    var p=pct(sellers,conv);
+    return '<div style="background:#fff;border-radius:10px;padding:16px 20px;box-shadow:0 1px 4px rgba(0,0,0,0.08);border-left:4px solid '+color+';flex:1;min-width:200px">'+
+      '<div style="font-size:11px;font-weight:700;color:'+color+';letter-spacing:0.5px;text-transform:uppercase;margin-bottom:6px">'+period+'</div>'+
+      '<div style="display:flex;align-items:baseline;gap:8px">'+
+        '<span style="font-size:32px;font-weight:800;color:#1a1a2e">'+sellers+'</span>'+
+        '<span style="font-size:13px;color:#6b7280">sellers potenciaron</span>'+
+        '<span style="font-size:12px;font-weight:600;color:'+color+';background:'+color+'18;padding:2px 8px;border-radius:10px">'+p+'% de conv.</span>'+
+      '</div>'+
+      '<div style="margin-top:8px;font-size:14px;font-weight:700;color:'+color+'">'+
+        '$'+fmtM(tpv)+' <span style="font-size:12px;font-weight:500;color:#6b7280">TPV incremental</span>'+
+      '</div>'+
+    '</div>';
   }
   document.getElementById('cohort-kpi-row').innerHTML=
-    card('conv','Potenciados M0',t.pot_m0,t.tpv_m0)+
-    card('cont','Potenciados M1',t.pot_m1,t.tpv_m1)+
-    card('leads','Potenciados M2',t.pot_m2,t.tpv_m2);
+    '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:4px">'+
+      statCard('#8b5cf6','M0 — Mes que convierte', t.pot_m0, t.conv, t.tpv_m0)+
+      statCard('#3483FA','M1 — 1 mes después',     t.pot_m1, t.conv, t.tpv_m1)+
+      statCard('#00A650','M2 — 2 meses después',   t.pot_m2, t.conv, t.tpv_m2)+
+    '</div>';
 }
 function renderCohortChart(){
   var rows=getCohortFiltered();
