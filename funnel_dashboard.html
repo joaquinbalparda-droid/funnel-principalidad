@@ -96,7 +96,7 @@
   <div class="section-nav">
     <button class="section-btn funnel-btn active" onclick="switchSection('funnel',this)">&#128197; GESTI&#211;N MES ACTUAL</button>
     <button class="section-btn hist-btn" onclick="switchSection('hist',this)">&#128202; GESTI&#211;N HIST&#211;RICA</button>
-    <button class="section-btn tpv-btn" onclick="switchSection('tpv',this)">&#128200; TPV INCREMENTAL</button>
+    <button class="section-btn tpv-btn" onclick="switchSection('tpv',this)">&#128640; POTENCIADOS</button>
   </div>
 
   <!-- ═══ SECCIÓN: MES ACTUAL ═══ -->
@@ -200,6 +200,10 @@
     </div>
     <div class="kpi-row" id="cohort-kpi-row"></div>
     <div class="charts-grid" style="grid-template-columns:1fr">
+      <div class="chart-card">
+        <h3>Cantidad de Potenciados por Cohort</h3>
+        <div class="chart-wrap" style="height:220px"><canvas id="chart-cohort-count"></canvas></div>
+      </div>
       <div class="chart-card">
         <h3>TPV Incremental por Cohort de Conversión (solo potenciados)</h3>
         <div class="chart-wrap" style="height:260px"><canvas id="chart-cohort"></canvas></div>
@@ -325,9 +329,9 @@ function renderFunnelKPIs(rows){
 }
 
 function renderFunnelVisual(rows){
-  var tot={leads:0,cont:0,conv:0};
-  rows.forEach(function(r){tot.leads+=r.leads;tot.cont+=r.cont;tot.conv+=r.conv;});
-  var steps=[{l:'Leads',v:tot.leads,c:'#3483FA'},{l:'Contactados',v:tot.cont,c:'#00A650'},{l:'Convertidos',v:tot.conv,c:'#8b5cf6'}];
+  var tot={leads:0,cont:0,conv:0,pot:0};
+  rows.forEach(function(r){tot.leads+=r.leads;tot.cont+=r.cont;tot.conv+=r.conv;tot.pot+=(r.pot||0);});
+  var steps=[{l:'Leads',v:tot.leads,c:'#3483FA'},{l:'Contactados',v:tot.cont,c:'#00A650'},{l:'Convertidos',v:tot.conv,c:'#8b5cf6'},{l:'Potenciados',v:tot.pot,c:'#f59e0b'}];
   var maxV=steps[0].v||1;
   document.getElementById('funnel-visual').innerHTML=steps.map(function(s){
     var w=Math.max(6,Math.round(s.v/maxV*100));
@@ -647,6 +651,27 @@ function renderCohortKPIs(rows){
       statCard('#3483FA','M1 — 1 mes después',     t.pot_m1, t.conv, t.tpv_m1)+
       statCard('#00A650','M2 — 2 meses después',   t.pot_m2, t.conv, t.tpv_m2)+
     '</div>';
+}
+function renderCohortCountChart(){
+  var rows=getCohortFiltered();
+  var byM=aggCohortByMonth(rows);
+  var labels=byM.map(function(r){return mesLabel(r.cohort);});
+  var ds=[];
+  if(cohortPeriod==='m0'||cohortPeriod==='all')
+    ds.push({label:'Potenciados M0',data:byM.map(function(r){return r.pot_m0||0;}),backgroundColor:'#8b5cf6CC',borderColor:'#8b5cf6',borderWidth:1,borderRadius:4});
+  if(cohortPeriod==='m1'||cohortPeriod==='all')
+    ds.push({label:'Potenciados M1',data:byM.map(function(r){return r.pot_m1||0;}),backgroundColor:'#3483FACC',borderColor:'#3483FA',borderWidth:1,borderRadius:4});
+  if(cohortPeriod==='m2'||cohortPeriod==='all')
+    ds.push({label:'Potenciados M2',data:byM.map(function(r){return r.pot_m2||0;}),backgroundColor:'#00A650CC',borderColor:'#00A650',borderWidth:1,borderRadius:4});
+  var ctx=document.getElementById('chart-cohort-count').getContext('2d');
+  if(cohortCountChartInst)cohortCountChartInst.destroy();
+  cohortCountChartInst=new Chart(ctx,{
+    type:'bar',data:{labels:labels,datasets:ds},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top'},tooltip:{callbacks:{label:function(c){return c.dataset.label+': '+c.parsed.y+' vendedores';}}}},
+      scales:{x:{grid:{display:false}},y:{beginAtZero:true,ticks:{stepSize:1,callback:function(v){return Number.isInteger(v)?v:'';}}}}
+    }
+  });
 }
 function renderCohortChart(){
   var rows=getCohortFiltered();
