@@ -307,7 +307,7 @@ function aggByAdvisor(camp,sub,tl){
     var a=map[k];
     a.leads+=r.leads;a.cont+=r.cont;a.conv+=r.conv;
     a.pend+=r.pend;a.neg+=r.neg;a.rech+=r.rech;
-    if((r.pot||0)>a.pot)a.pot=r.pot;
+    a.pot+=(r.pot||0);
     a.tpv_m0p=Math.max(a.tpv_m0p,r.tpv_m0p||0);
     a.tpv_m1=Math.max(a.tpv_m1,r.tpv_m1||0);
   });
