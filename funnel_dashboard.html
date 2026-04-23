@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard Principalidad</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
   <style>
     :root{--bg:#f0f2f5;--card:#fff;--header:#1a1a2e;--text:#1a1a2e;--muted:#6b7280;--border:#e5e7eb;--radius:10px;--gap:14px;--mjo:#3483FA;--ag:#e6b800;--fq:#00A650;--sz:#FF7733;--pos:#16a34a;--neg:#dc2626;}
     *{margin:0;padding:0;box-sizing:border-box;}
@@ -210,7 +211,7 @@
           <button class="camp-btn cp-inner" id="cp-count-m1" onclick="setCohortPeriod('m1',this,'count')">M1 (+1 mes)</button>
           <button class="camp-btn cp-inner" id="cp-count-m2" onclick="setCohortPeriod('m2',this,'count')">M2 (+2 meses)</button>
         </div>
-        <div class="chart-wrap" style="height:220px"><canvas id="chart-cohort-count"></canvas></div>
+        <div class="chart-wrap" style="height:240px"><canvas id="chart-cohort-count"></canvas></div>
       </div>
       <div class="chart-card">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;margin-bottom:4px">
@@ -222,7 +223,7 @@
           <button class="camp-btn cp-inner" id="cp-tpv-m1" onclick="setCohortPeriod('m1',this,'tpv')">M1 — Incremental</button>
           <button class="camp-btn cp-inner" id="cp-tpv-m2" onclick="setCohortPeriod('m2',this,'tpv')">M2 — Incremental</button>
         </div>
-        <div class="chart-wrap" style="height:260px"><canvas id="chart-cohort"></canvas></div>
+        <div class="chart-wrap" style="height:280px"><canvas id="chart-cohort"></canvas></div>
       </div>
     </div>
     <div class="table-card">
@@ -731,7 +732,17 @@ function renderCohortChart(){
   cohortChartInst=new Chart(ctx,{
     type:'bar',data:{labels:labels,datasets:ds},
     options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{position:'top'},tooltip:{callbacks:{label:function(c){return c.dataset.label+': $'+c.parsed.y.toFixed(1)+'M';}}}},
+      plugins:{
+        legend:{position:'top'},
+        tooltip:{callbacks:{label:function(c){return c.dataset.label+': $'+c.parsed.y.toFixed(1)+'M';}}},
+        datalabels:{
+          anchor:'end',align:'end',
+          formatter:function(v){return v>0?'$'+v.toFixed(1)+'M':'';},
+          font:{size:10,weight:'bold'},
+          color:'#374151',
+          padding:2
+        }
+      },
       scales:{x:{grid:{display:false}},y:{beginAtZero:true,ticks:{callback:function(v){return'$'+v+'M';}}}}}
   });
 }
