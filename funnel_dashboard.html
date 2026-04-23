@@ -736,6 +736,7 @@ function renderCohortCountChart(){
   cohortCountChartInst=new Chart(ctx,{
     type:'bar',data:{labels:labels,datasets:ds},
     options:{responsive:true,maintainAspectRatio:false,
+      _labelFmt:function(v){return v>0?String(v):'';},
       plugins:{legend:{position:'top'},tooltip:{callbacks:{label:function(c){return c.dataset.label+': '+c.parsed.y+' vendedores';}}},
       scales:{x:{grid:{display:false}},y:{beginAtZero:true,ticks:{stepSize:1,callback:function(v){return Number.isInteger(v)?v:'';}}}}
     }
