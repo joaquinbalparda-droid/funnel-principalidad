@@ -713,8 +713,7 @@ function renderCohortCountChart(){
     options:{responsive:true,maintainAspectRatio:false,
       plugins:{legend:{position:'top'},tooltip:{callbacks:{label:function(c){return c.dataset.label+': '+c.parsed.y+' vendedores';}}},
       scales:{x:{grid:{display:false}},y:{beginAtZero:true,ticks:{stepSize:1,callback:function(v){return Number.isInteger(v)?v:'';}}}}
-    },
-    plugins:[{id:'lbl',afterDatasetsDraw:function(ch){var cx=ch.ctx;ch.data.datasets.forEach(function(ds,di){var m=ch.getDatasetMeta(di);if(m.hidden)return;m.data.forEach(function(el,i){var v=ds.data[i];if(!v||v<=0)return;cx.save();cx.font='bold 10px sans-serif';cx.fillStyle='#374151';cx.textAlign='center';cx.textBaseline='bottom';cx.fillText(v,el.x,el.y-3);cx.restore();});});}}]
+    }
   });
 }
 function renderCohortChart(){
@@ -738,8 +737,7 @@ function renderCohortChart(){
         tooltip:{callbacks:{label:function(c){return c.dataset.label+': $'+c.parsed.y.toFixed(1)+'M';}}}
       },
       scales:{x:{grid:{display:false}},y:{beginAtZero:true,ticks:{callback:function(v){return'$'+v+'M';}}}}}
-  ,
-    plugins:[{id:'lbl',afterDatasetsDraw:function(ch){var cx=ch.ctx;ch.data.datasets.forEach(function(ds,di){var m=ch.getDatasetMeta(di);if(m.hidden)return;m.data.forEach(function(el,i){var v=ds.data[i];if(!v||v<=0)return;cx.save();cx.font='bold 10px sans-serif';cx.fillStyle='#374151';cx.textAlign='center';cx.textBaseline='bottom';cx.fillText('$'+v.toFixed(1)+'M',el.x,el.y-3);cx.restore();});});}}]
+  
   });
 }
 function renderCohortTable(rows){
