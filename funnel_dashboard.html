@@ -606,17 +606,17 @@ function setTpvTL(val,btn){
   tpvAsesor='all';
   document.querySelectorAll('#section-tpv .tl-btn').forEach(function(b){b.classList.remove('active');});
   if(btn)btn.classList.add('active');
-  populateTpvAsesorSelect();
+  populateTpvAsesorSelect(true); // reset advisor when TL changes
   renderTpvSection();
 }
 function setTpvAsesor(val){
   tpvAsesor=val;
   renderTpvSection();
 }
-function populateTpvAsesorSelect(){
+function populateTpvAsesorSelect(resetSelection){
   var sel=document.getElementById('tpv-asesor-select');
   if(!sel)return;
-  // Get unique advisors for current TL filter
+  var prev=resetSelection?'all':sel.value; // preserve current selection unless TL changed
   var names=[];
   TPV_COHORT_DATA.forEach(function(r){
     if((tpvTL==='all'||r.tl===tpvTL)&&names.indexOf(r.name)<0)names.push(r.name);
@@ -628,7 +628,14 @@ function populateTpvAsesorSelect(){
     o.value=n; o.textContent=n;
     sel.appendChild(o);
   });
-  sel.value='all';
+  // Restore previous selection if still valid
+  if(prev!=='all'&&names.indexOf(prev)>=0){
+    sel.value=prev;
+    tpvAsesor=prev;
+  } else if(resetSelection){
+    sel.value='all';
+    tpvAsesor='all';
+  }
 }
 function setCohortPeriod(p,btn){
   cohortPeriod=p;
@@ -776,7 +783,7 @@ function renderCohortTable(rows){
   document.getElementById('cohort-tbody').innerHTML=h;
 }
 function renderTpvSection(){
-  populateTpvAsesorSelect();
+  populateTpvAsesorSelect(false); // preserve current advisor selection
   var rows=getCohortFiltered();
   renderCohortKPIs(rows);
   renderCohortCountChart();
