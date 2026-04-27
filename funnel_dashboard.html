@@ -213,6 +213,7 @@
       </select>
     </div>
     <div class="kpi-row" id="cohort-kpi-row"></div>
+    <div class="kpi-row" id="vc-pot-strip" style="margin-top:-8px"></div>
     <div class="charts-grid" style="grid-template-columns:1fr">
       <div class="chart-card">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;margin-bottom:4px">
@@ -309,6 +310,7 @@ function switchSection(sec,btn){
   btn.classList.add('active');
   if(sec==='hist')renderHist();
   if(sec==='tpv')renderTpvSection();
+  if(sec==='cumpl')renderCumplimiento();
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -752,6 +754,20 @@ function renderCohortKPIs(rows){
     '</div>';
 }
 
+function renderVcSummaryInPot(){
+  var rows=getCohortFiltered();
+  var el=document.getElementById('vc-pot-strip');
+  if(!el)return;
+  if(!rows.length){el.innerHTML='';return;}
+  var t={vc_m0:0,vc_m1:0,vc_m2:0};
+  rows.forEach(function(r){t.vc_m0+=r.vc_inc_m0||0;t.vc_m1+=r.vc_inc_m1||0;t.vc_m2+=r.vc_inc_m2||0;});
+  function fmt(v){return'$'+(v/1e6).toFixed(2)+'M';}
+  el.innerHTML=
+    '<div class="kpi-card" style="border-left-color:#8b5cf6"><div class="kpi-label">VC Inc M0 (potenciados)</div><div class="kpi-value" style="font-size:22px">'+fmt(t.vc_m0)+'</div></div>'+
+    '<div class="kpi-card" style="border-left-color:#3483FA"><div class="kpi-label">VC Inc M1 (potenciados)</div><div class="kpi-value" style="font-size:22px">'+fmt(t.vc_m1)+'</div></div>'+
+    '<div class="kpi-card" style="border-left-color:#10b981"><div class="kpi-label">VC Inc M2 (potenciados)</div><div class="kpi-value" style="font-size:22px">'+fmt(t.vc_m2)+'</div></div>';
+}
+
 function renderCohortCountChart(){
   var rows=getCohortFiltered();
   var byM=aggCohortByMonth(rows);
@@ -908,6 +924,7 @@ function renderTpvSection(){
     return;
   }
   renderCohortKPIs(rows);
+  renderVcSummaryInPot();
   renderCohortCountChart();
   renderCohortChart();
   renderCohortTable(rows);
