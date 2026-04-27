@@ -616,9 +616,11 @@ function setTpvAsesor(val){
 function populateTpvAsesorSelect(resetSelection){
   var sel=document.getElementById('tpv-asesor-select');
   if(!sel)return;
-  var prev=resetSelection?'all':sel.value; // preserve current selection unless TL changed
+  var prev=resetSelection?'all':sel.value;
   var names=[];
-  TPV_COHORT_DATA.forEach(function(r){
+  // Use TPV_DATA (always available) when cohort data is empty
+  var src=(TPV_COHORT_DATA&&TPV_COHORT_DATA.length)?TPV_COHORT_DATA:TPV_DATA;
+  src.forEach(function(r){
     if((tpvTL==='all'||r.tl===tpvTL)&&names.indexOf(r.name)<0)names.push(r.name);
   });
   names.sort();
@@ -628,7 +630,6 @@ function populateTpvAsesorSelect(resetSelection){
     o.value=n; o.textContent=n;
     sel.appendChild(o);
   });
-  // Restore previous selection if still valid
   if(prev!=='all'&&names.indexOf(prev)>=0){
     sel.value=prev;
     tpvAsesor=prev;
@@ -782,9 +783,81 @@ function renderCohortTable(rows){
   h+='</tbody></table>';
   document.getElementById('cohort-tbody').innerHTML=h;
 }
+function renderCurrentMonthPotTab(){
+  // Fallback: show current month potenciados from TPV_DATA when cohort data unavailable
+  var filtered=TPV_DATA.filter(function(r){
+    if(tpvTL!=='all'&&r.tl!==tpvTL)return false;
+    if(tpvAsesor!=='all'&&r.name!==tpvAsesor)return false;
+    return true;
+  });
+  // Aggregate by advisor (sum pot and tpv_inc_pot across sub-campanas)
+  var map={};
+  filtered.forEach(function(r){
+    var k=r.tl+'|'+r.name;
+    if(!map[k])map[k]={tl:r.tl,name:r.name,conv:0,pot:0,tpv_inc:0};
+    map[k].conv+=r.conv||0;
+    map[k].pot+=(r.pot||0);
+    map[k].tpv_inc+=(r.tpv_inc_pot||0);
+  });
+  var rows=Object.values(map).filter(function(a){return a.pot>0;});
+  rows.sort(function(a,b){return b.pot-a.pot||a.name.localeCompare(b.name);});
+  // KPIs
+  var totPot=rows.reduce(function(s,a){return s+a.pot;},0);
+  var totTPV=rows.reduce(function(s,a){return s+a.tpv_inc;},0);
+  var totConv=filtered.reduce(function(s,r){return s+(r.conv||0);},0);
+  var kRow=document.getElementById('cohort-kpi-row');
+  kRow.innerHTML=
+    '<div class="kpi-card"><div class="kpi-label">Potenciados Mes Actual</div><div class="kpi-value">'+totPot+'</div><div class="kpi-sub">sellers que potenciaron</div></div>'+
+    '<div class="kpi-card"><div class="kpi-label">TPV Incremental</div><div class="kpi-value">$'+(totTPV/1e6).toFixed(1)+'M</div><div class="kpi-sub">incremento proyectado</div></div>'+
+    '<div class="kpi-card"><div class="kpi-label">% de Convertidos</div><div class="kpi-value">'+(totConv>0?Math.round(totPot/totConv*100):0)+'%</div><div class="kpi-sub">que potenciaron</div></div>';
+  // Charts: show message
+  if(cohortChartInst){cohortChartInst.destroy();cohortChartInst=null;}
+  if(cohortCountChartInst){cohortCountChartInst.destroy();cohortCountChartInst=null;}
+  var c1=document.getElementById('chart-cohort-count');
+  var c2=document.getElementById('chart-cohort');
+  function showMsg(canvas,msg){
+    var ctx=canvas.getContext('2d');
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    canvas.height=80;
+    ctx.font='14px system-ui';ctx.fillStyle='#9ca3af';ctx.textAlign='center';
+    ctx.fillText(msg,canvas.width/2,40);
+  }
+  if(c1)showMsg(c1,'Ejecutar actualizar_historico.py para ver evolución por cohort');
+  if(c2)showMsg(c2,'Datos históricos no disponibles');
+  // Table: potenciados del mes actual por asesor
+  var tb=document.getElementById('cohort-tbody');
+  if(!rows.length){
+    tb.innerHTML='<tr><td colspan="5" style="text-align:center;padding:20px;color:#9ca3af">Sin potenciados para el filtro seleccionado</td></tr>';
+    return;
+  }
+  var h='<tr style="background:#f8fafc;font-weight:700;font-size:12px"><td>TL</td><td>Asesor</td><td style="text-align:right">Convertidos</td><td style="text-align:right">Potenciados</td><td style="text-align:right">TPV Incremental</td></tr>';
+  rows.forEach(function(a){
+    h+='<tr style="border-bottom:1px solid #f0f0f0">'+
+      '<td style="font-weight:600;color:#3483FA">'+a.tl.toUpperCase()+'</td>'+
+      '<td>'+a.name+'</td>'+
+      '<td style="text-align:right">'+a.conv+'</td>'+
+      '<td style="text-align:right;font-weight:700;color:#f59e0b">'+a.pot+'</td>'+
+      '<td style="text-align:right;color:#10b981">$'+(a.tpv_inc/1e6).toFixed(2)+'M</td>'+
+    '</tr>';
+  });
+  // Totals row
+  var totC=rows.reduce(function(s,a){return s+a.conv;},0);
+  h+='<tr style="background:#fff7ed;font-weight:700;border-top:2px solid #f59e0b">'+
+    '<td colspan="2" style="color:#92400e">TOTAL</td>'+
+    '<td style="text-align:right">'+totC+'</td>'+
+    '<td style="text-align:right;color:#f59e0b">'+totPot+'</td>'+
+    '<td style="text-align:right;color:#10b981">$'+(totTPV/1e6).toFixed(2)+'M</td></tr>';
+  tb.innerHTML=h;
+}
+
 function renderTpvSection(){
-  populateTpvAsesorSelect(false); // preserve current advisor selection
+  populateTpvAsesorSelect(false);
   var rows=getCohortFiltered();
+  if(!rows.length){
+    // No cohort data → show current month table from TPV_DATA
+    renderCurrentMonthPotTab();
+    return;
+  }
   renderCohortKPIs(rows);
   renderCohortCountChart();
   renderCohortChart();
