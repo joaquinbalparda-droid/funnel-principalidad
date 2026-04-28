@@ -1045,15 +1045,20 @@ function renderCumplimiento(){
     if(!map[r.asesor])map[r.asesor]={tl:r.tl,name:r.asesor,meses:{},streak:0,vals:[]};
     map[r.asesor].meses[r.mes]=r;
   });
-  // Streak (meses consecutivos recientes < 70%) y promedio
+  // Streak (meses consecutivos recientes < 70%) y promedio (últimos 5 meses)
+  var ultimos5=meses.slice(-5);
   Object.values(map).forEach(function(a){
     var streak=0,counting=true;
     for(var i=meses.length-1;i>=0;i--){
       var row=a.meses[meses[i]];
       if(!row){continue;}
       if(counting){if(row.pct<70)streak++;else counting=false;}
-      a.vals.push(row.pct);
     }
+    // Promedio solo sobre los últimos 5 meses con dato
+    ultimos5.forEach(function(m){
+      var row=a.meses[m];
+      if(row)a.vals.push(row.pct);
+    });
     a.streak=streak;
     a.avg=a.vals.length?Math.round(a.vals.reduce(function(s,v){return s+v;},0)/a.vals.length*10)/10:null;
   });
