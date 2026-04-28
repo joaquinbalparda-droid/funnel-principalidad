@@ -239,6 +239,18 @@
         </div>
         <div class="chart-wrap" style="height:280px"><canvas id="chart-cohort"></canvas></div>
       </div>
+      <div class="chart-card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;margin-bottom:4px">
+          <h3 style="margin:0">VC Incremental por Cohort (solo potenciados)</h3>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+          <button class="camp-btn cp-inner active" id="cp-vc-all" onclick="setCohortPeriod('all',this,'vc')">Todos</button>
+          <button class="camp-btn cp-inner" id="cp-vc-m0" onclick="setCohortPeriod('m0',this,'vc')">M0 — Incremental</button>
+          <button class="camp-btn cp-inner" id="cp-vc-m1" onclick="setCohortPeriod('m1',this,'vc')">M1 — Incremental</button>
+          <button class="camp-btn cp-inner" id="cp-vc-m2" onclick="setCohortPeriod('m2',this,'vc')">M2 — Incremental</button>
+        </div>
+        <div class="chart-wrap" style="height:280px"><canvas id="chart-cohort-vc"></canvas></div>
+      </div>
     </div>
     <div class="table-card">
       <h3>Detalle por Cohort y Asesor</h3>
@@ -650,7 +662,7 @@ document.getElementById('upd-funnel').textContent=UPDATED||'-';
 // ══════════════════════════════════════════════════════════════════
 // SECCIÓN TPV INCREMENTAL
 // ══════════════════════════════════════════════════════════════════
-var tpvTL='all',tpvAsesor='all', cohortPeriod='all', cohortChartInst=null, cohortCountChartInst=null;
+var tpvTL='all',tpvAsesor='all', cohortPeriod='all', cohortChartInst=null, cohortCountChartInst=null, cohortVcChartInst=null;
 
 function setTpvTL(val,btn){
   tpvTL=val;
@@ -701,6 +713,7 @@ function setCohortPeriod(p,btn){
   });
   renderCohortCountChart();
   renderCohortChart();
+  renderCohortVcChart();
 }
 function getCohortFiltered(){
   if(!TPV_COHORT_DATA||!TPV_COHORT_DATA.length)return[];
@@ -714,12 +727,12 @@ function aggCohortByMonth(rows){
   var map={};
   rows.forEach(function(r){
     var k=r.cohort;
-    if(!map[k])map[k]={cohort:k,conv:0,pot_m0:0,tpv_inc_m0:0,pot_m1:0,tpv_inc_m1:0,pot_m2:0,tpv_inc_m2:0};
+    if(!map[k])map[k]={cohort:k,conv:0,pot_m0:0,tpv_inc_m0:0,vc_inc_m0:0,pot_m1:0,tpv_inc_m1:0,vc_inc_m1:0,pot_m2:0,tpv_inc_m2:0,vc_inc_m2:0};
     var a=map[k];
     a.conv+=r.conv||0;
-    a.pot_m0+=r.pot_m0||0; a.tpv_inc_m0+=r.tpv_inc_m0||0;
-    a.pot_m1+=r.pot_m1||0; a.tpv_inc_m1+=r.tpv_inc_m1||0;
-    a.pot_m2+=r.pot_m2||0; a.tpv_inc_m2+=r.tpv_inc_m2||0;
+    a.pot_m0+=r.pot_m0||0; a.tpv_inc_m0+=r.tpv_inc_m0||0; if((r.pot_m0||0)>0)a.vc_inc_m0+=r.vc_inc_m0||0;
+    a.pot_m1+=r.pot_m1||0; a.tpv_inc_m1+=r.tpv_inc_m1||0; if((r.pot_m1||0)>0)a.vc_inc_m1+=r.vc_inc_m1||0;
+    a.pot_m2+=r.pot_m2||0; a.tpv_inc_m2+=r.tpv_inc_m2||0; if((r.pot_m2||0)>0)a.vc_inc_m2+=r.vc_inc_m2||0;
   });
   return Object.values(map).sort(function(a,b){return a.cohort-b.cohort;});
 }
@@ -814,6 +827,33 @@ function renderCohortChart(){
       },
       scales:{x:{grid:{display:false}},y:{beginAtZero:true,ticks:{callback:function(v){return'$'+v+'M';}}}}}
   
+  });
+}
+function renderCohortVcChart(){
+  var rows=getCohortFiltered();
+  var byM=aggCohortByMonth(rows);
+  var labels=byM.map(function(r){return mesLabel(r.cohort);});
+  var ds=[];
+  if(cohortPeriod==='m0'||cohortPeriod==='all')
+    ds.push({label:'VC Inc M0',data:byM.map(function(r){return+(r.vc_inc_m0/1e6).toFixed(3);}),backgroundColor:'#8b5cf6CC',borderColor:'#8b5cf6',borderWidth:1,borderRadius:4});
+  if(cohortPeriod==='m1'||cohortPeriod==='all')
+    ds.push({label:'VC Inc M1',data:byM.map(function(r){return+(r.vc_inc_m1/1e6).toFixed(3);}),backgroundColor:'#3483FACC',borderColor:'#3483FA',borderWidth:1,borderRadius:4});
+  if(cohortPeriod==='m2'||cohortPeriod==='all')
+    ds.push({label:'VC Inc M2',data:byM.map(function(r){return+(r.vc_inc_m2/1e6).toFixed(3);}),backgroundColor:'#10b981CC',borderColor:'#10b981',borderWidth:1,borderRadius:4});
+  var ctx=document.getElementById('chart-cohort-vc').getContext('2d');
+  if(cohortVcChartInst)cohortVcChartInst.destroy();
+  cohortVcChartInst=new Chart(ctx,{
+    type:'bar',data:{labels:labels,datasets:ds},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{position:'top'},
+        tooltip:{callbacks:{label:function(c){return c.dataset.label+': $'+c.parsed.y.toFixed(3)+'M';}}}
+      },
+      scales:{
+        x:{grid:{display:false}},
+        y:{beginAtZero:true,ticks:{callback:function(v){return'$'+v+'M';}}}
+      }
+    }
   });
 }
 function renderCohortTable(rows){
@@ -931,6 +971,7 @@ function renderTpvSection(){
   renderVcSummaryInPot();
   renderCohortCountChart();
   renderCohortChart();
+  renderCohortVcChart();
   renderCohortTable(rows);
 }
 
