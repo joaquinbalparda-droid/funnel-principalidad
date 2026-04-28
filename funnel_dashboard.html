@@ -986,7 +986,12 @@ function renderCumplimiento(){
     document.getElementById('cumpl-tbody').innerHTML='<tr><td colspan="3" style="padding:24px;text-align:center;color:#9ca3af">Sin datos de cohort disponibles</td></tr>';
     return;
   }
-  var rows=TPV_COHORT_DATA.filter(function(r){return cumplTL==='all'||r.tl===cumplTL;});
+  // Solo asesores activos en el mes actual (excluye desvinculados)
+  var activeNames=new Set((TPV_DATA||[]).map(function(r){return r.name;}));
+  var rows=TPV_COHORT_DATA.filter(function(r){
+    if(!activeNames.has(r.name))return false;
+    return cumplTL==='all'||r.tl===cumplTL;
+  });
   var cohorts=[...new Set(rows.map(function(r){return r.cohort;}))].sort(function(a,b){return a-b;});
   var map={};
   rows.forEach(function(r){
