@@ -681,7 +681,7 @@ document.getElementById('upd-funnel').textContent=UPDATED||'-';
 // ══════════════════════════════════════════════════════════════════
 // SECCIÓN TPV INCREMENTAL
 // ══════════════════════════════════════════════════════════════════
-var tpvTL='all',tpvAsesor='all', cohortPeriod='all', cohortMesSel=null, cohortChartInst=null, cohortCountChartInst=null, cohortVcChartInst=null;
+var tpvTL='all',tpvAsesor='all', cohortPeriod='all', cohortMesSel=MES_ACTUAL_NUM, cohortChartInst=null, cohortCountChartInst=null, cohortVcChartInst=null;
 
 // LOOKERV2: mapa de potenciados del mes actual para override en Gestión Mes Actual
 var lookerPotMap={};
@@ -750,6 +750,16 @@ function setCohortPeriod(p,btn){
   renderCohortVcChart();
 }
 function getCohortFiltered(){
+  // Para gráficos y tabla: filtra por TL/asesor pero NO por mes (muestra toda la evolución)
+  if(!TPV_COHORT_DATA||!TPV_COHORT_DATA.length)return[];
+  return TPV_COHORT_DATA.filter(function(r){
+    if(tpvTL!=='all'&&r.tl!==tpvTL)return false;
+    if(tpvAsesor!=='all'&&r.name!==tpvAsesor)return false;
+    return true;
+  });
+}
+function getCohortForKPI(){
+  // Para las tarjetas de KPI: filtra por TL/asesor + mes seleccionado
   if(!TPV_COHORT_DATA||!TPV_COHORT_DATA.length)return[];
   return TPV_COHORT_DATA.filter(function(r){
     if(tpvTL!=='all'&&r.tl!==tpvTL)return false;
@@ -767,10 +777,6 @@ function populateCohortMesSelect(){
   meses.forEach(function(m){
     var o=document.createElement('option');o.value=m;o.textContent=mesLabel(m);sel.appendChild(o);
   });
-  // Default: mes actual si está disponible y no hay selección previa
-  if(cohortMesSel===null&&meses.indexOf(MES_ACTUAL_NUM)>=0){
-    cohortMesSel=MES_ACTUAL_NUM;
-  }
   sel.value=(cohortMesSel!==null)?cohortMesSel:'all';
 }
 function setCohortMes(val){
@@ -822,8 +828,8 @@ function renderCohortKPIs(rows){
     '</div>';
 }
 
-function renderVcSummaryInPot(){
-  var rows=getCohortFiltered();
+function renderVcSummaryInPot(rows){
+  if(!rows)rows=getCohortForKPI();
   var el=document.getElementById('vc-pot-strip');
   if(!el)return;
   if(!rows.length){el.innerHTML='';return;}
@@ -1017,18 +1023,19 @@ function renderCurrentMonthPotTab(){
 function renderTpvSection(){
   populateTpvAsesorSelect(false);
   populateCohortMesSelect();
-  var rows=getCohortFiltered();
-  if(!rows.length){
+  var allRows=getCohortFiltered();   // para gráficos y tabla (todos los meses)
+  var kpiRows=getCohortForKPI();     // para tarjetas KPI (mes seleccionado)
+  if(!allRows.length){
     // No cohort data → show current month table from TPV_DATA
     renderCurrentMonthPotTab();
     return;
   }
-  renderCohortKPIs(rows);
-  renderVcSummaryInPot();
+  renderCohortKPIs(kpiRows);
+  renderVcSummaryInPot(kpiRows);
   renderCohortCountChart();
   renderCohortChart();
   renderCohortVcChart();
-  renderCohortTable(rows);
+  renderCohortTable(allRows);
 }
 
 document.getElementById('upd-hist').textContent=UPDATED_HIST||'-';
