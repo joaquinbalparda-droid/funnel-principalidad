@@ -211,6 +211,11 @@
       <select id="tpv-asesor-select" onchange="setTpvAsesor(this.value)" style="padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;font-size:13px;background:#fff;cursor:pointer">
         <option value="all">Todos los asesores</option>
       </select>
+      <div class="filter-sep"></div>
+      <span class="filter-label">Cohort:</span>
+      <select id="cohort-mes-select" onchange="setCohortMes(this.value)" style="padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;font-size:13px;background:#fff;cursor:pointer">
+        <option value="all">Todos los cohorts</option>
+      </select>
     </div>
     <div class="kpi-row" id="cohort-kpi-row"></div>
     <div class="kpi-row" id="vc-pot-strip" style="margin-top:-8px"></div>
@@ -480,16 +485,22 @@ function renderFunnelTable(rows){
 
 function renderTPVStrip(){
   if(!TPV_DATA||TPV_DATA.length===0){document.getElementById('tpv-strip').innerHTML='';return;}
-  // Suma total de sellers potenciados + TPV across TODAS las campanas
   var total={tpv_m0p:0,tpv_m1:0,pot:0,conv:0};
   TPV_DATA.forEach(function(r){
     total.tpv_m0p += r.tpv_m0p||0;
     total.tpv_m1  += r.tpv_m1||0;
-    total.pot     += r.pot||0;
     total.conv    += r.conv||0;
   });
+  // Usar LOOKERV2 para pot y TPV incremental si está disponible
+  var lkTot=lookerPotMap&&lookerPotMap._totals;
+  if(lkTot&&lkTot.pot>0){
+    total.pot=lkTot.pot;
+    total.tpv_m0p=lkTot.tpv;
+  } else {
+    TPV_DATA.forEach(function(r){total.pot+=r.pot||0;});
+  }
   var h=
-    '<div class="tpv-card"><div class="tpv-label">TPV M0 Proyectado (Potenciados)</div><div class="tpv-value">$'+fmtM(total.tpv_m0p)+'</div><div class="tpv-sub">M1: $'+fmtM(total.tpv_m1)+'</div></div>'+
+    '<div class="tpv-card"><div class="tpv-label">TPV Incremental (Potenciados)</div><div class="tpv-value">$'+fmtM(total.tpv_m0p)+'</div></div>'+
     '<div class="tpv-card inc"><div class="tpv-label">Potenciados</div><div class="tpv-value">'+total.pot+'</div><div class="tpv-sub">comercios potenciados</div></div>';
   document.getElementById('tpv-strip').innerHTML=h;
 }
@@ -501,6 +512,13 @@ function renderFunnel(){
     document.getElementById('funnel-visual').innerHTML='';
     document.getElementById('f-tbody').innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:20px">Sin datos</td></tr>';
     return;
+  }
+  // Override pot + TPV incremental con datos LOOKERV2 (más precisos que BQ)
+  if(lookerPotMap&&lookerPotMap._totals&&lookerPotMap._totals.pot>0){
+    rows=rows.map(function(r){
+      var lk=lookerPotMap[r.name];
+      return Object.assign({},r,{pot:(lk?lk.pot:0),tpv_inc_pot:(lk?lk.tpv:0),vc_inc_pot:(lk?lk.vc:0)});
+    });
   }
   renderFunnelKPIs(rows);
   renderFunnelVisual(rows);
@@ -663,7 +681,22 @@ document.getElementById('upd-funnel').textContent=UPDATED||'-';
 // ══════════════════════════════════════════════════════════════════
 // SECCIÓN TPV INCREMENTAL
 // ══════════════════════════════════════════════════════════════════
-var tpvTL='all',tpvAsesor='all', cohortPeriod='all', cohortChartInst=null, cohortCountChartInst=null, cohortVcChartInst=null;
+var tpvTL='all',tpvAsesor='all', cohortPeriod='all', cohortMesSel=null, cohortChartInst=null, cohortCountChartInst=null, cohortVcChartInst=null;
+
+// LOOKERV2: mapa de potenciados del mes actual para override en Gestión Mes Actual
+var lookerPotMap={};
+(function(){
+  var totPot=0,totTpv=0,totVc=0;
+  (TPV_COHORT_DATA||[]).forEach(function(r){
+    if(r.cohort===MES_ACTUAL_NUM){
+      var prev=lookerPotMap[r.name];
+      if(!prev||r.pot_m0>(prev.pot||0))
+        lookerPotMap[r.name]={pot:r.pot_m0||0,tpv:r.tpv_inc_m0||0,vc:r.vc_inc_m0||0};
+    }
+  });
+  Object.values(lookerPotMap).forEach(function(lk){totPot+=lk.pot;totTpv+=lk.tpv;totVc+=lk.vc;});
+  lookerPotMap._totals={pot:totPot,tpv:totTpv,vc:totVc};
+})();
 
 function setTpvTL(val,btn){
   tpvTL=val;
@@ -721,8 +754,28 @@ function getCohortFiltered(){
   return TPV_COHORT_DATA.filter(function(r){
     if(tpvTL!=='all'&&r.tl!==tpvTL)return false;
     if(tpvAsesor!=='all'&&r.name!==tpvAsesor)return false;
+    if(cohortMesSel!==null&&r.cohort!==cohortMesSel)return false;
     return true;
   });
+}
+function populateCohortMesSelect(){
+  var sel=document.getElementById('cohort-mes-select');
+  if(!sel)return;
+  var meses=[...new Set((TPV_COHORT_DATA||[]).map(function(r){return r.cohort;}))].sort(function(a,b){return b-a;});
+  var prevVal=sel.value;
+  sel.innerHTML='<option value="all">Todos los cohorts</option>';
+  meses.forEach(function(m){
+    var o=document.createElement('option');o.value=m;o.textContent=mesLabel(m);sel.appendChild(o);
+  });
+  // Default: mes actual si está disponible y no hay selección previa
+  if(cohortMesSel===null&&meses.indexOf(MES_ACTUAL_NUM)>=0){
+    cohortMesSel=MES_ACTUAL_NUM;
+  }
+  sel.value=(cohortMesSel!==null)?cohortMesSel:'all';
+}
+function setCohortMes(val){
+  cohortMesSel=(val==='all')?null:parseInt(val,10);
+  renderTpvSection();
 }
 function aggCohortByMonth(rows){
   var map={};
@@ -760,11 +813,12 @@ function renderCohortKPIs(rows){
       '</div>'+
     '</div>';
   }
+  var mesTag=cohortMesSel?(' <span style="font-size:10px;font-weight:500;opacity:0.7">'+mesLabel(cohortMesSel)+'</span>'):'';
   document.getElementById('cohort-kpi-row').innerHTML=
     '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:4px">'+
-      statCard('#8b5cf6','M0 — Mes que convierte', t.pot_m0, t.conv, t.tpv_m0)+
-      statCard('#3483FA','M1 — 1 mes después',     t.pot_m1, t.conv, t.tpv_m1)+
-      statCard('#00A650','M2 — 2 meses después',   t.pot_m2, t.conv, t.tpv_m2)+
+      statCard('#8b5cf6','M0 — Mes que convierte'+mesTag, t.pot_m0, t.conv, t.tpv_m0)+
+      statCard('#3483FA','M1 — 1 mes después'+mesTag,     t.pot_m1, t.conv, t.tpv_m1)+
+      statCard('#00A650','M2 — 2 meses después'+mesTag,   t.pot_m2, t.conv, t.tpv_m2)+
     '</div>';
 }
 
@@ -962,6 +1016,7 @@ function renderCurrentMonthPotTab(){
 
 function renderTpvSection(){
   populateTpvAsesorSelect(false);
+  populateCohortMesSelect();
   var rows=getCohortFiltered();
   if(!rows.length){
     // No cohort data → show current month table from TPV_DATA
