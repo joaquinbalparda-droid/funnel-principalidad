@@ -273,6 +273,10 @@
       <button class="tl-btn ag"  onclick="setCumplTL('ag',this)">AG</button>
       <button class="tl-btn fq"  onclick="setCumplTL('fq',this)">FQ</button>
       <button class="tl-btn sz"  onclick="setCumplTL('sz',this)">SZ</button>
+      <span class="filter-label" style="margin-left:12px">MES:</span>
+      <select id="cumpl-mes-select" onchange="setCumplMes(this.value)" style="padding:6px 10px;border-radius:8px;border:2px solid #e5e7eb;font-size:13px;font-weight:700;background:#fff;cursor:pointer;">
+        <option value="ultimo">Último mes</option>
+      </select>
     </div>
     <div class="kpi-row" id="cumpl-kpi-row" style="margin-bottom:12px"></div>
     <div class="chart-card" style="margin-bottom:var(--gap)">
@@ -1053,11 +1057,34 @@ renderHist();
 // SECCIÓN CUMPLIMIENTO
 // ══════════════════════════════════════════════════════════════════════════════
 var cumplTL='all';
+var cumplMesSel='ultimo';
 function setCumplTL(val,btn){
   cumplTL=val;
   document.querySelectorAll('#section-cumpl .tl-btn').forEach(function(b){b.classList.remove('active');});
   if(btn)btn.classList.add('active');
   renderCumplimiento();
+}
+function setCumplMes(val){
+  cumplMesSel=val;
+  renderCumplimiento();
+}
+function populateCumplMesSelect(meses){
+  var sel=document.getElementById('cumpl-mes-select');
+  if(!sel)return;
+  var current=sel.value;
+  sel.innerHTML='<option value="ultimo">Último mes</option>';
+  meses.forEach(function(m){
+    var opt=document.createElement('option');
+    opt.value=m;
+    opt.textContent=mesLabelShort(m);
+    sel.appendChild(opt);
+  });
+  // Restaurar selección si sigue siendo válida
+  if(current!=='ultimo'&&meses.indexOf(parseInt(current))>=0){
+    sel.value=current;
+  } else {
+    sel.value=cumplMesSel==='ultimo'?'ultimo':(meses.indexOf(parseInt(cumplMesSel))>=0?cumplMesSel:'ultimo');
+  }
 }
 function addMonths(yyyymm,n){
   var y=Math.floor(yyyymm/100),m=yyyymm%100;
@@ -1143,23 +1170,31 @@ function renderCumplimiento(){
   // Promedio general de los promedios mensuales (KPI)
   var mesPromVals=Object.values(mesProms).filter(function(v){return v!==null;});
   var promMensual=mesPromVals.length?Math.round(mesPromVals.reduce(function(s,v){return s+v;},0)/mesPromVals.length*10)/10:null;
-  // Último mes disponible
+  // Mes seleccionado para KPI
   var ultimoMes=meses[meses.length-1];
-  var promUltimoMes=mesProms[ultimoMes];
+  var mesMostrar=(cumplMesSel==='ultimo'||!mesProms[parseInt(cumplMesSel)])?ultimoMes:parseInt(cumplMesSel);
+  var promMesMostrar=mesProms[mesMostrar];
+  var mesMostrarLabel=mesLabelShort(mesMostrar);
+  // Cuántos cumplen >= 100 en el mes mostrado
+  var cumplenMes=Object.values(map).filter(function(a){return(a.meses[mesMostrar]||{}).pct>=100;}).length;
+  var activosMes=Object.values(map).filter(function(a){return!!a.meses[mesMostrar];}).length;
+
+  // Poblar selector de meses
+  populateCumplMesSelect(meses);
 
   // KPI cards
   document.getElementById('cumpl-kpi-row').innerHTML=
-    '<div class="kpi-card"><div class="kpi-label">Prom. Mensual (&#250;lt. mes)</div>'+
-    '<div class="kpi-value" style="color:'+(promUltimoMes>=100?'#10b981':promUltimoMes>=70?'#f59e0b':'#dc2626')+'">'+
-    (promUltimoMes!==null?promUltimoMes.toFixed(1)+'%':'—')+'</div>'+
-    '<div class="kpi-sub">'+mesLabelShort(ultimoMes)+'</div></div>'+
-    '<div class="kpi-card"><div class="kpi-label">Prom. Mensual (hist.)</div>'+
+    '<div class="kpi-card" style="border-top:4px solid #10b981"><div class="kpi-label">Prom. Equipo &#8212; '+mesMostrarLabel+'</div>'+
+    '<div class="kpi-value" style="color:'+(promMesMostrar>=100?'#10b981':promMesMostrar>=70?'#f59e0b':'#dc2626')+'">'+
+    (promMesMostrar!==null?promMesMostrar.toFixed(1)+'%':'—')+'</div>'+
+    '<div class="kpi-sub">promedio del equipo en '+mesMostrarLabel+'</div></div>'+
+    '<div class="kpi-card"><div class="kpi-label">Prom. Hist&#243;rico</div>'+
     '<div class="kpi-value" style="color:'+(promMensual>=100?'#10b981':promMensual>=70?'#f59e0b':'#dc2626')+'">'+
     (promMensual!==null?promMensual.toFixed(1)+'%':'—')+'</div>'+
-    '<div class="kpi-sub">promedio de promedios mensuales</div></div>'+
-    '<div class="kpi-card"><div class="kpi-label">Cumplen &#8805; 100% (&#250;lt. mes)</div>'+
-    '<div class="kpi-value" style="color:#10b981">'+cumplen+'</div>'+
-    '<div class="kpi-sub">de '+allVals.length+' activos</div></div>'+
+    '<div class="kpi-sub">promedio de todos los meses</div></div>'+
+    '<div class="kpi-card"><div class="kpi-label">Cumplen &#8805; 100% &#8212; '+mesMostrarLabel+'</div>'+
+    '<div class="kpi-value" style="color:#10b981">'+cumplenMes+'</div>'+
+    '<div class="kpi-sub">de '+activosMes+' activos</div></div>'+
     '<div class="kpi-card" style="border-left-color:#dc2626"><div class="kpi-label">Alerta 3+ meses bajo 70%</div>'+
     '<div class="kpi-value" style="color:#dc2626">'+alertas+'</div>'+
     '<div class="kpi-sub">asesores a revisar</div></div>';
