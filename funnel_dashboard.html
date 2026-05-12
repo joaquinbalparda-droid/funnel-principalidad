@@ -275,6 +275,10 @@
       <button class="tl-btn sz"  onclick="setCumplTL('sz',this)">SZ</button>
     </div>
     <div class="kpi-row" id="cumpl-kpi-row" style="margin-bottom:12px"></div>
+    <div class="chart-card" style="margin-bottom:var(--gap)">
+      <h3>Promedio Mensual de Cumplimiento del Equipo</h3>
+      <div class="chart-wrap"><canvas id="cumpl-prom-chart"></canvas></div>
+    </div>
     <div class="table-card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
         <h3 style="margin:0">Evolución de Cumplimiento por Asesor</h3>
@@ -289,6 +293,7 @@
         <table class="heat-table">
           <thead id="cumpl-thead"></thead>
           <tbody id="cumpl-tbody"></tbody>
+          <tfoot id="cumpl-tfoot"></tfoot>
         </table>
       </div>
       <p style="margin-top:8px;font-size:11px;color:#9ca3af">
@@ -1128,16 +1133,71 @@ function renderCumplimiento(){
   var prom=allVals.length?Math.round(allVals.reduce(function(s,a){return s+a.avg;},0)/allVals.length*10)/10:0;
   var cumplen=allVals.filter(function(a){return(a.meses[meses[meses.length-1]]||{}).pct>=100;}).length;
   var alertas=Object.values(map).filter(function(a){return a.streak>=3;}).length;
+
+  // Promedio por mes (de todos los asesores con dato en ese mes)
+  var mesProms={};
+  meses.forEach(function(m){
+    var vals=Object.values(map).map(function(a){return a.meses[m]?a.meses[m].pct:null;}).filter(function(v){return v!==null;});
+    mesProms[m]=vals.length?Math.round(vals.reduce(function(s,v){return s+v;},0)/vals.length*10)/10:null;
+  });
+  // Promedio general de los promedios mensuales (KPI)
+  var mesPromVals=Object.values(mesProms).filter(function(v){return v!==null;});
+  var promMensual=mesPromVals.length?Math.round(mesPromVals.reduce(function(s,v){return s+v;},0)/mesPromVals.length*10)/10:null;
+  // Último mes disponible
+  var ultimoMes=meses[meses.length-1];
+  var promUltimoMes=mesProms[ultimoMes];
+
   // KPI cards
   document.getElementById('cumpl-kpi-row').innerHTML=
-    '<div class="kpi-card"><div class="kpi-label">Promedio Cumplimiento</div>'+
-    '<div class="kpi-value" style="color:'+(prom>=100?'#10b981':prom>=70?'#f59e0b':'#dc2626')+'">'+prom.toFixed(1)+'%</div></div>'+
-    '<div class="kpi-card"><div class="kpi-label">Cumplen ≥ 100% (&#250;lt. mes)</div>'+
+    '<div class="kpi-card"><div class="kpi-label">Prom. Mensual (&#250;lt. mes)</div>'+
+    '<div class="kpi-value" style="color:'+(promUltimoMes>=100?'#10b981':promUltimoMes>=70?'#f59e0b':'#dc2626')+'">'+
+    (promUltimoMes!==null?promUltimoMes.toFixed(1)+'%':'—')+'</div>'+
+    '<div class="kpi-sub">'+mesLabelShort(ultimoMes)+'</div></div>'+
+    '<div class="kpi-card"><div class="kpi-label">Prom. Mensual (hist.)</div>'+
+    '<div class="kpi-value" style="color:'+(promMensual>=100?'#10b981':promMensual>=70?'#f59e0b':'#dc2626')+'">'+
+    (promMensual!==null?promMensual.toFixed(1)+'%':'—')+'</div>'+
+    '<div class="kpi-sub">promedio de promedios mensuales</div></div>'+
+    '<div class="kpi-card"><div class="kpi-label">Cumplen &#8805; 100% (&#250;lt. mes)</div>'+
     '<div class="kpi-value" style="color:#10b981">'+cumplen+'</div>'+
     '<div class="kpi-sub">de '+allVals.length+' activos</div></div>'+
     '<div class="kpi-card" style="border-left-color:#dc2626"><div class="kpi-label">Alerta 3+ meses bajo 70%</div>'+
     '<div class="kpi-value" style="color:#dc2626">'+alertas+'</div>'+
     '<div class="kpi-sub">asesores a revisar</div></div>';
+
+  // Gráfico de barras: promedio mensual
+  if(window._cumplPromChart){window._cumplPromChart.destroy();window._cumplPromChart=null;}
+  var ctx=document.getElementById('cumpl-prom-chart');
+  if(ctx){
+    var chartLabels=meses.map(function(m){return mesLabelShort(m);});
+    var chartVals=meses.map(function(m){return mesProms[m]!==null?mesProms[m]:0;});
+    var barColors=chartVals.map(function(v){return v>=100?'#10b981':v>=70?'#f59e0b':'#ef4444';});
+    window._cumplPromChart=new Chart(ctx.getContext('2d'),{
+      type:'bar',
+      data:{
+        labels:chartLabels,
+        datasets:[{
+          label:'Promedio Cumplimiento %',
+          data:chartVals,
+          backgroundColor:barColors,
+          borderRadius:5,
+          borderSkipped:false
+        }]
+      },
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        plugins:{
+          legend:{display:false},
+          tooltip:{callbacks:{label:function(c){return c.parsed.y.toFixed(1)+'%';}}}
+        },
+        scales:{
+          y:{beginAtZero:true,max:150,ticks:{callback:function(v){return v+'%';}},
+            grid:{color:'rgba(0,0,0,.05)'}},
+          x:{grid:{display:false}}
+        }
+      }
+    });
+  }
+
   // Header
   var h='<tr><th class="ah">TL</th><th class="ah">Asesor</th>';
   meses.forEach(function(m){h+='<th>'+mesLabelShort(m)+'</th>';});
@@ -1166,6 +1226,20 @@ function renderCumplimiento(){
     tb+='</tr>';
   });
   document.getElementById('cumpl-tbody').innerHTML=tb;
+
+  // Tfoot: fila de promedios mensuales del equipo
+  var tfStyle='background:#0f172a;color:#fff;font-weight:800;font-size:12px;';
+  var tf='<tr style="'+tfStyle+'">';
+  tf+='<td colspan="2" style="padding:7px 10px;text-align:left;background:#0f172a;color:#10b981;letter-spacing:.5px;font-size:11px">PROM. EQUIPO</td>';
+  meses.forEach(function(m){
+    var p=mesProms[m];
+    var col=p===null?'#9ca3af':(p>=100?'#6ee7b7':p>=70?'#fcd34d':'#fca5a5');
+    tf+='<td style="padding:7px 8px;text-align:center;color:'+col+'">'+(p===null?'—':p.toFixed(1)+'%')+'</td>';
+  });
+  var totCol=promMensual===null?'#9ca3af':(promMensual>=100?'#6ee7b7':promMensual>=70?'#fcd34d':'#fca5a5');
+  tf+='<td style="padding:7px 8px;text-align:center;color:'+totCol+';font-size:13px">'+(promMensual===null?'—':promMensual.toFixed(1)+'%')+'</td>';
+  tf+='</tr>';
+  document.getElementById('cumpl-tfoot').innerHTML=tf;
 }
 
 
