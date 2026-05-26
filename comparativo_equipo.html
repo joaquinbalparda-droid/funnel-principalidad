@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Comparativo Abril vs Mayo 2026</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f2f5;color:#1a1a2e}
+.wrap{max-width:1200px;margin:0 auto;padding:20px}
+header{background:#1a1a2e;border-radius:12px;padding:22px 28px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+h1{font-size:22px;font-weight:800;color:#fff}
+.tag{background:#ffffff22;padding:4px 12px;border-radius:20px;font-size:12px;color:#e5e7eb;margin-left:6px}
+
+/* Tabs */
+.tabs{display:flex;gap:8px;margin-bottom:20px}
+.tab{padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;border:none;background:#fff;color:#6b7280;box-shadow:0 1px 3px rgba(0,0,0,.1);transition:all .15s}
+.tab.active{background:#1a1a2e;color:#fff}
+
+.view{display:none}.view.active{display:block}
+
+/* Veredicto */
+.veredicto{background:linear-gradient(135deg,#1e3a5f,#1a1a2e);border-radius:12px;padding:22px 28px;margin-bottom:20px;color:#fff}
+.veredicto h2{font-size:12px;text-transform:uppercase;letter-spacing:1px;opacity:.5;margin-bottom:8px}
+.veredicto p{font-size:15px;line-height:1.8;color:#e5e7eb}
+.veredicto strong{color:#fbbf24}
+
+/* Tabla campaña */
+.camp-wrap{background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08);margin-bottom:20px}
+.camp-wrap table{width:100%;border-collapse:collapse}
+.th-main{background:#1a1a2e;color:#fff;padding:12px 16px;font-size:11px;text-transform:uppercase;letter-spacing:.5px;text-align:center}
+.th-abr{background:#4C72B015;color:#4C72B0;padding:10px 14px;font-size:11px;text-align:center}
+.th-may{background:#DD845215;color:#DD8452;padding:10px 14px;font-size:11px;text-align:center}
+.camp-wrap td{padding:14px 16px;text-align:center;font-size:14px;border-top:1px solid #f3f4f6}
+.camp-wrap td:first-child{text-align:left;font-weight:700}
+.val-xl{font-size:22px;font-weight:900}
+.row-cal{background:#eff6ff}
+.row-promo{background:#f5f3ff}
+.row-total{background:#f0fdf4}
+.row-grand td{background:#1a1a2e;color:#fff;font-weight:800;font-size:15px}
+.delta-neg{background:#fee2e2;color:#991b1b;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:700;display:inline-block;margin:2px}
+.delta-pos{background:#dcfce7;color:#166534;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:700;display:inline-block;margin:2px}
+.delta-neu{background:#f3f4f6;color:#6b7280;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:700;display:inline-block;margin:2px}
+
+/* Charts */
+.charts2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+.chart-card{background:#fff;border-radius:12px;padding:18px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.chart-card h3{font-size:13px;font-weight:700;color:#374151;margin-bottom:12px}
+canvas{height:210px!important}
+
+/* Peores section */
+.peores-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+.peores-card{background:#fff;border-radius:12px;padding:18px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.peores-card h3{font-size:13px;font-weight:700;margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid #fee2e2;color:#991b1b}
+.peores-card h3.green{border-color:#dcfce7;color:#166534}
+.advisor-row{display:flex;align-items:center;padding:8px 0;border-bottom:1px solid #f9fafb}
+.advisor-row:last-child{border:none}
+.rank-num{width:24px;height:24px;border-radius:50%;background:#fee2e2;color:#991b1b;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.rank-num.green{background:#dcfce7;color:#166534}
+.advisor-name{flex:1;margin:0 10px;font-size:13px;font-weight:600}
+.advisor-tl{font-size:10px;color:#9ca3af;font-weight:400}
+.nums{text-align:right;font-size:12px}
+.nums .abr{color:#9ca3af}
+.nums .may{font-weight:700}
+.nums .d{font-weight:800;font-size:13px}
+
+/* TL badge */
+.badge{display:inline-block;padding:1px 7px;border-radius:20px;font-size:10px;font-weight:700}
+.badge-ag{background:#dbeafe;color:#1d4ed8}
+.badge-fq{background:#fef3c7;color:#92400e}
+.badge-mjo{background:#dcfce7;color:#166534}
+.badge-sz{background:#fce7f3;color:#9d174d}
+
+/* Tabla full */
+.controls{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+.controls select,.controls input{padding:8px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;background:#fff}
+table.full{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+table.full thead tr{background:#1a1a2e;color:#fff}
+table.full th{padding:11px 12px;font-size:11px;text-align:center;white-space:nowrap;cursor:pointer;user-select:none}
+table.full th:first-child,table.full th:nth-child(2){text-align:left}
+table.full th:hover{background:#2d2d4e}
+table.full td{padding:10px 12px;text-align:center;font-size:13px;border-bottom:1px solid #f3f4f6}
+table.full td:first-child{text-align:left;font-weight:600}
+table.full td:nth-child(2){text-align:center}
+table.full tbody tr:hover{background:#f9fafb}
+.sort-arrow{font-size:10px;margin-left:3px}
+.cell-neg{color:#dc2626;font-weight:700}
+.cell-pos{color:#16a34a;font-weight:700}
+.footnote{font-size:11px;color:#9ca3af;text-align:center;margin-top:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div>
+    <div style="font-size:11px;color:#9ca3af;margin-bottom:4px;text-transform:uppercase;letter-spacing:1px">Performance Report</div>
+    <h1>Comparativo Abril vs Mayo 2026</h1>
+  </div>
+  <div>
+    <span class="tag">📅 Abril: D26 proyectado</span>
+    <span class="tag">📅 Mayo: D26 actual</span>
+  </div>
+</header>
+
+<!-- Tabs -->
+<div class="tabs">
+  <button class="tab active" onclick="showView('vista-campana')">📊 Por Campaña</button>
+  <button class="tab" onclick="showView('vista-asesores')">👤 Por Asesor</button>
+</div>
+
+<!-- ═══ VISTA CAMPAÑA ══════════════════════════════════════════ -->
+<div id="vista-campana" class="view active">
+
+  <div class="veredicto">
+    <h2>🔎 Diagnóstico — Desvío explicado</h2>
+    <p style="margin-bottom:14px">
+      Vamos <strong>215 conv al D26</strong> vs <strong>262 que ibamos en Abril</strong> al mismo día. <strong>−47 conv (−18%)</strong>. Acá está el desglose:
+    </p>
+    <!-- Waterfall desglose -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:14px">
+      <div style="background:#ffffff18;border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:28px;font-weight:900;color:#93c5fd">262</div>
+        <div style="font-size:11px;opacity:.6;margin-top:2px">Abril D26 proyectado</div>
+      </div>
+      <div style="background:#ffffff18;border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:28px;font-weight:900;color:#fca5a5">−29</div>
+        <div style="font-size:11px;opacity:.6;margin-top:2px">Asesores que se fueron<br><span style="opacity:.7">(Micaela, Catalina, Camila, Azul)</span></div>
+      </div>
+      <div style="background:#ffffff18;border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:28px;font-weight:900;color:#fca5a5">−36</div>
+        <div style="font-size:11px;opacity:.6;margin-top:2px">Caída Calentamiento<br><span style="opacity:.7">(−31% leads, −7pp contactab.)</span></div>
+      </div>
+      <div style="background:#ffffff18;border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:28px;font-weight:900;color:#fca5a5">−15</div>
+        <div style="font-size:11px;opacity:.6;margin-top:2px">Caída TOTAL<br><span style="opacity:.7">(resto de campañas)</span></div>
+      </div>
+      <div style="background:#ffffff18;border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:28px;font-weight:900;color:#86efac">+19</div>
+        <div style="font-size:11px;opacity:.6;margin-top:2px">Mejora PROMO CUOTAS<br><span style="opacity:.7">(+7pp contactab.)</span></div>
+      </div>
+      <div style="background:#ffffff18;border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:28px;font-weight:900;color:#86efac">+14</div>
+        <div style="font-size:11px;opacity:.6;margin-top:2px">Asesores nuevos<br><span style="opacity:.7">(9 incorporados en Mayo)</span></div>
+      </div>
+      <div style="background:#fbbf2430;border:1px solid #fbbf2460;border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:28px;font-weight:900;color:#fcd34d">215</div>
+        <div style="font-size:11px;opacity:.7;margin-top:2px">Mayo D26 actual</div>
+      </div>
+    </div>
+    <p style="font-size:13px;opacity:.8">
+      El <strong style="color:#fbbf24">cierre no está mal</strong> — conv/contactado igual que Abril. El problema es <strong style="color:#fca5a5">volumen de contactos</strong>: Calentamiento perdió -31% leads asignados. Pace actual <strong style="color:#fcd34d">~8.3 conv/día</strong> → estimado cierre <strong style="color:#fcd34d">~257 vs 300 de Abril</strong>.
+    </p>
+  </div>
+
+  <div class="camp-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th class="th-main" rowspan="2" style="text-align:left;width:180px">Campaña</th>
+          <th class="th-abr" colspan="3">ABRIL →D26 (proyectado)</th>
+          <th class="th-may" colspan="3">MAYO D26</th>
+          <th class="th-main" rowspan="2">DELTA</th>
+        </tr>
+        <tr>
+          <th class="th-abr">Leads</th><th class="th-abr">Contactados</th><th class="th-abr">Convertidos</th>
+          <th class="th-may">Leads</th><th class="th-may">Contactados</th><th class="th-may">Convertidos</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="row-cal">
+          <td>⚡ CALENTAMIENTO</td>
+          <td>924</td><td>641 <small style="color:#4C72B0">(69%)</small></td><td class="val-xl" style="color:#4C72B0">85</td>
+          <td>637</td><td>395 <small style="color:#DD8452">(62%)</small></td><td class="val-xl" style="color:#DC2626">49</td>
+          <td><span class="delta-neg">▼ -36 conv</span><span class="delta-neg">▼ -7pp contactab.</span><span class="delta-neg">▼ -31% leads asignados</span></td>
+        </tr>
+        <tr class="row-promo">
+          <td>🎯 PROMO CUOTAS</td>
+          <td>1.203</td><td>630 <small style="color:#4C72B0">(52%)</small></td><td class="val-xl" style="color:#4C72B0">60</td>
+          <td>966</td><td>575 <small style="color:#DD8452">(60%)</small></td><td class="val-xl" style="color:#16a34a">79</td>
+          <td><span class="delta-pos">▲ +19 conv (+32%)</span><span class="delta-pos">▲ +7pp contactab.</span></td>
+        </tr>
+        <tr class="row-total">
+          <td>📋 TOTAL (resto)</td>
+          <td>4.591</td><td>1.643 <small style="color:#4C72B0">(36%)</small></td><td class="val-xl" style="color:#4C72B0">118</td>
+          <td>3.887</td><td>1.628 <small style="color:#DD8452">(42%)</small></td><td class="val-xl" style="color:#DC2626">103</td>
+          <td><span class="delta-neg">▼ -15 conv</span><span class="delta-pos">▲ +6pp contactab.</span></td>
+        </tr>
+        <tr class="row-grand">
+          <td>📊 TOTAL GENERAL <small style="font-size:10px;opacity:.7">(BQ → proy. D26)</small></td>
+          <td>6.717</td><td>2.913</td><td class="val-xl" style="color:#93c5fd">262</td>
+          <td>4.910</td><td>2.379</td><td class="val-xl" style="color:#fcd34d">215</td>
+          <td><span class="delta-neg">▼ -47 conv (-18%)</span><span class="delta-neg">Est. cierre: ~257 vs 300</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="charts2">
+    <div class="chart-card"><h3>📞 Contactados por campaña — Abril vs Mayo</h3><canvas id="ch-cont-camp"></canvas></div>
+    <div class="chart-card"><h3>✅ Convertidos por campaña — Abril vs Mayo</h3><canvas id="ch-conv-camp"></canvas></div>
+  </div>
+
+  <div class="footnote">Datos: CAMP_SNAP del dashboard — todos los equipos (AG, FQ, MJO, SZ). Abril D23 proyectado a D26 (×26/23). Mayo = D26 real.</div>
+</div>
+
+<!-- ═══ VISTA ASESORES ══════════════════════════════════════════ -->
+<div id="vista-asesores" class="view">
+
+  <!-- Callout: se fueron -->
+  <div style="background:linear-gradient(135deg,#1e3a5f,#1a1a2e);border-radius:12px;padding:18px 24px;margin-bottom:20px;color:#fff;display:flex;gap:24px;align-items:center;flex-wrap:wrap">
+    <div style="font-size:36px;font-weight:900;color:#fca5a5">−29</div>
+    <div style="flex:1">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;opacity:.5;margin-bottom:4px">Conversiones perdidas por bajas del equipo</div>
+      <div style="font-size:14px;color:#e5e7eb;line-height:1.7">
+        <strong style="color:#fbbf24">Micaela Marsuzi, Catalina Fernandez, Camila Coca, Azul Pacioni</strong> ya no están en Mayo.
+        Representan <strong style="color:#fca5a5">29 de las −47 conversiones</strong> vs Abril D26 proyectado.
+        El equipo activo solo explica <strong style="color:#fca5a5">−18 conv</strong> del gap.
+      </div>
+    </div>
+    <div style="text-align:center">
+      <div style="font-size:11px;opacity:.5;margin-bottom:4px">Gap total</div>
+      <div style="font-size:22px;font-weight:800;color:#fca5a5">262 → 215</div>
+    </div>
+  </div>
+
+  <!-- Peores -->
+  <div class="peores-grid">
+    <div class="peores-card">
+      <h3>📉 Peores en CONTACTADOS vs Abril</h3>
+      <div id="list-peor-cont"></div>
+    </div>
+    <div class="peores-card">
+      <h3>📉 Peores en CONVERSIONES vs Abril</h3>
+      <div id="list-peor-conv"></div>
+    </div>
+  </div>
+
+  <!-- Mejores -->
+  <div class="peores-grid">
+    <div class="peores-card">
+      <h3 class="green">📈 Mejores en CONTACTADOS vs Abril</h3>
+      <div id="list-mejor-cont"></div>
+    </div>
+    <div class="peores-card">
+      <h3 class="green">📈 Mejores en CONVERSIONES vs Abril</h3>
+      <div id="list-mejor-conv"></div>
+    </div>
+  </div>
+
+  <!-- Tabla full -->
+  <div class="controls">
+    <select id="flt-tl" onchange="renderFull()">
+      <option value="">Todos los TLs</option>
+      <option>AG</option><option>FQ</option><option>MJO</option>
+    </select>
+    <select id="flt-sort" onchange="renderFull()">
+      <option value="delta_cont">▼ Ordenar: Δ Contactados (peores primero)</option>
+      <option value="delta_conv">▼ Ordenar: Δ Conversiones (peores primero)</option>
+      <option value="delta_cont_r">▼ Ordenar: Δ Contactab. % (peores primero)</option>
+      <option value="m_conv">▼ Ordenar: Conversiones Mayo (más a menos)</option>
+      <option value="m_cont">▼ Ordenar: Contactados Mayo (más a menos)</option>
+    </select>
+    <input id="flt-q" type="text" placeholder="Buscar asesor..." oninput="renderFull()" style="width:160px">
+  </div>
+
+  <table class="full">
+    <thead>
+      <tr>
+        <th style="text-align:left">Asesor</th>
+        <th>TL</th>
+        <th>Leads ABR</th><th>Cont. ABR</th><th>Conv ABR</th>
+        <th>Leads MAY</th><th>Cont. MAY</th><th>Conv MAY</th>
+        <th>Δ Contactados</th><th>Δ Contactab.%</th><th>Δ Conversiones</th>
+      </tr>
+    </thead>
+    <tbody id="full-tbody"></tbody>
+  </table>
+  <div class="footnote" style="margin-top:10px">Datos Abril (D23): histórico del dashboard — 20 asesores comparables. Datos Mayo (D26): BQ — 29 asesores activos. Los marcados NUEVO no tienen datos Abril y no aparecen en los rankings de variación. Total equipo Mayo (sin SZ): 215 conv.</div>
+</div>
+
+</div><!-- wrap -->
+
+<script>
+// ── Data ─────────────────────────────────────────────────────────────────────
+// new=true → incorporados en Mayo, sin datos Abril  |  gone=true → estaban en Abril, ya no están en Mayo
+// Datos Abril = proyección lineal D23→D26 (×26/23)
+const DATA = [{"name":"Analia Maisonnave","tl":"AG","a_leads":257,"a_cont":156,"a_conv":6,"a_cont_r":60.8,"a_conv_r":3.6,"m_leads":185,"m_cont":76,"m_conv":4,"m_cont_r":41.1,"m_conv_r":5.3,"delta_cont":-80,"delta_conv":-2,"delta_cont_r":-19.7,"delta_conv_r":1.7},{"name":"Federico Vitabile","tl":"AG","a_leads":265,"a_cont":98,"a_conv":8,"a_cont_r":37.2,"a_conv_r":8.0,"m_leads":179,"m_cont":33,"m_conv":3,"m_cont_r":18.4,"m_conv_r":9.1,"delta_cont":-65,"delta_conv":-5,"delta_cont_r":-18.8,"delta_conv_r":1.1},{"name":"Julian Torres","tl":"MJO","a_leads":258,"a_cont":172,"a_conv":7,"a_cont_r":66.7,"a_conv_r":3.9,"m_leads":181,"m_cont":117,"m_conv":10,"m_cont_r":64.6,"m_conv_r":8.5,"delta_cont":-55,"delta_conv":3,"delta_cont_r":-2.1,"delta_conv_r":4.6},{"name":"Manuel Elizarraga","tl":"MJO","a_leads":266,"a_cont":147,"a_conv":11,"a_cont_r":55.3,"a_conv_r":7.7,"m_leads":174,"m_cont":98,"m_conv":10,"m_cont_r":56.3,"m_conv_r":10.2,"delta_cont":-49,"delta_conv":-1,"delta_cont_r":1.0,"delta_conv_r":2.5},{"name":"Rocio Angueira","tl":"MJO","a_leads":260,"a_cont":112,"a_conv":6,"a_cont_r":43.0,"a_conv_r":5.1,"m_leads":194,"m_cont":66,"m_conv":8,"m_cont_r":34.0,"m_conv_r":12.1,"delta_cont":-46,"delta_conv":2,"delta_cont_r":-9.0,"delta_conv_r":7.0},{"name":"Mariana Gonzalez","tl":"MJO","a_leads":265,"a_cont":106,"a_conv":12,"a_cont_r":40.2,"a_conv_r":11.7,"m_leads":177,"m_cont":69,"m_conv":5,"m_cont_r":39.0,"m_conv_r":7.2,"delta_cont":-37,"delta_conv":-7,"delta_cont_r":-1.2,"delta_conv_r":-4.5},{"name":"Agustin Diz","tl":"MJO","a_leads":267,"a_cont":97,"a_conv":14,"a_cont_r":36.4,"a_conv_r":14.0,"m_leads":188,"m_cont":72,"m_conv":12,"m_cont_r":38.3,"m_conv_r":16.7,"delta_cont":-25,"delta_conv":-2,"delta_cont_r":1.9,"delta_conv_r":2.7},{"name":"Luciana Pisacco","tl":"FQ","a_leads":262,"a_cont":98,"a_conv":6,"a_cont_r":37.5,"a_conv_r":5.7,"m_leads":186,"m_cont":77,"m_conv":6,"m_cont_r":41.4,"m_conv_r":7.8,"delta_cont":-21,"delta_conv":0,"delta_cont_r":3.9,"delta_conv_r":2.1},{"name":"Diego Moreno","tl":"AG","a_leads":262,"a_cont":102,"a_conv":10,"a_cont_r":38.8,"a_conv_r":10.0,"m_leads":182,"m_cont":81,"m_conv":6,"m_cont_r":44.5,"m_conv_r":7.4,"delta_cont":-21,"delta_conv":-4,"delta_cont_r":5.7,"delta_conv_r":-2.6},{"name":"Emanuel Dursi","tl":"AG","a_leads":266,"a_cont":96,"a_conv":11,"a_cont_r":36.2,"a_conv_r":11.8,"m_leads":191,"m_cont":76,"m_conv":8,"m_cont_r":39.8,"m_conv_r":10.5,"delta_cont":-20,"delta_conv":-3,"delta_cont_r":3.6,"delta_conv_r":-1.3},{"name":"Giselda Allende","tl":"AG","a_leads":272,"a_cont":102,"a_conv":12,"a_cont_r":37.3,"a_conv_r":12.2,"m_leads":176,"m_cont":81,"m_conv":8,"m_cont_r":46.0,"m_conv_r":9.9,"delta_cont":-21,"delta_conv":-4,"delta_cont_r":8.7,"delta_conv_r":-2.3},{"name":"Carolina Delgado","tl":"MJO","a_leads":259,"a_cont":104,"a_conv":15,"a_cont_r":40.2,"a_conv_r":14.1,"m_leads":192,"m_cont":84,"m_conv":13,"m_cont_r":43.8,"m_conv_r":15.5,"delta_cont":-20,"delta_conv":-2,"delta_cont_r":3.6,"delta_conv_r":1.4},{"name":"Sebastian Jansa","tl":"FQ","a_leads":266,"a_cont":113,"a_conv":19,"a_cont_r":42.6,"a_conv_r":17.0,"m_leads":190,"m_cont":96,"m_conv":12,"m_cont_r":50.5,"m_conv_r":12.5,"delta_cont":-17,"delta_conv":-7,"delta_cont_r":7.9,"delta_conv_r":-4.5},{"name":"Alejandro Diaz","tl":"AG","a_leads":267,"a_cont":94,"a_conv":14,"a_cont_r":35.2,"a_conv_r":14.5,"m_leads":196,"m_cont":80,"m_conv":7,"m_cont_r":40.8,"m_conv_r":8.8,"delta_cont":-14,"delta_conv":-7,"delta_cont_r":5.6,"delta_conv_r":-5.7},{"name":"Juan Cruz Rial","tl":"MJO","a_leads":266,"a_cont":125,"a_conv":12,"a_cont_r":47.2,"a_conv_r":9.9,"m_leads":179,"m_cont":112,"m_conv":9,"m_cont_r":62.6,"m_conv_r":8.0,"delta_cont":-13,"delta_conv":-3,"delta_cont_r":15.4,"delta_conv_r":-1.9},{"name":"Joaquin Lescano","tl":"FQ","a_leads":253,"a_cont":106,"a_conv":6,"a_cont_r":42.0,"a_conv_r":5.3,"m_leads":182,"m_cont":95,"m_conv":5,"m_cont_r":52.2,"m_conv_r":5.3,"delta_cont":-11,"delta_conv":-1,"delta_cont_r":10.2,"delta_conv_r":0.0},{"name":"Matias Mesiano","tl":"AG","a_leads":251,"a_cont":99,"a_conv":12,"a_cont_r":39.6,"a_conv_r":12.5,"m_leads":191,"m_cont":90,"m_conv":5,"m_cont_r":47.1,"m_conv_r":5.6,"delta_cont":-9,"delta_conv":-7,"delta_cont_r":7.5,"delta_conv_r":-6.9},{"name":"Francelys Perez","tl":"FQ","a_leads":261,"a_cont":109,"a_conv":9,"a_cont_r":41.6,"a_conv_r":8.3,"m_leads":190,"m_cont":101,"m_conv":4,"m_cont_r":53.2,"m_conv_r":4.0,"delta_cont":-8,"delta_conv":-5,"delta_cont_r":11.6,"delta_conv_r":-4.3},{"name":"Barbara Nuñez","tl":"FQ","a_leads":260,"a_cont":102,"a_conv":18,"a_cont_r":39.1,"a_conv_r":17.8,"m_leads":168,"m_cont":100,"m_conv":12,"m_cont_r":59.5,"m_conv_r":12.0,"delta_cont":-2,"delta_conv":-6,"delta_cont_r":20.4,"delta_conv_r":-5.8},{"name":"Soledad Maydana","tl":"MJO","a_leads":255,"a_cont":101,"a_conv":9,"a_cont_r":39.4,"a_conv_r":9.0,"m_leads":183,"m_cont":100,"m_conv":9,"m_cont_r":54.6,"m_conv_r":9.0,"delta_cont":-1,"delta_conv":0,"delta_cont_r":15.2,"delta_conv_r":0.0},{"name":"Nicolas Barrios","tl":"FQ","new":true,"a_leads":0,"a_cont":0,"a_conv":0,"a_cont_r":0,"a_conv_r":0,"m_leads":137,"m_cont":47,"m_conv":10,"m_cont_r":34.3,"m_conv_r":21.3,"delta_cont":47,"delta_conv":10,"delta_cont_r":34.3,"delta_conv_r":21.3},{"name":"Romina Di Paolo","tl":"AG","new":true,"a_leads":0,"a_cont":0,"a_conv":0,"a_cont_r":0,"a_conv_r":0,"m_leads":135,"m_cont":56,"m_conv":4,"m_cont_r":41.5,"m_conv_r":7.1,"delta_cont":56,"delta_conv":4,"delta_cont_r":41.5,"delta_conv_r":7.1},{"name":"Mayra Marchese","tl":"MJO","new":true,"a_leads":0,"a_cont":0,"a_conv":0,"a_cont_r":0,"a_conv_r":0,"m_leads":134,"m_cont":64,"m_conv":7,"m_cont_r":47.8,"m_conv_r":10.9,"delta_cont":64,"delta_conv":7,"delta_cont_r":47.8,"delta_conv_r":10.9},{"name":"Santiago Cordoba","tl":"FQ","new":true,"a_leads":0,"a_cont":0,"a_conv":0,"a_cont_r":0,"a_conv_r":0,"m_leads":135,"m_cont":71,"m_conv":3,"m_cont_r":52.6,"m_conv_r":4.2,"delta_cont":71,"delta_conv":3,"delta_cont_r":52.6,"delta_conv_r":4.2},{"name":"Juan Capria","tl":"FQ","new":true,"a_leads":0,"a_cont":0,"a_conv":0,"a_cont_r":0,"a_conv_r":0,"m_leads":134,"m_cont":74,"m_conv":2,"m_cont_r":55.2,"m_conv_r":2.7,"delta_cont":74,"delta_conv":2,"delta_cont_r":55.2,"delta_conv_r":2.7},{"name":"Maria Segovia","tl":"MJO","new":true,"a_leads":0,"a_cont":0,"a_conv":0,"a_cont_r":0,"a_conv_r":0,"m_leads":142,"m_cont":76,"m_conv":7,"m_cont_r":53.5,"m_conv_r":9.2,"delta_cont":76,"delta_conv":7,"delta_cont_r":53.5,"delta_conv_r":9.2},{"name":"Matías Valenzuela","tl":"MJO","new":true,"a_leads":0,"a_cont":0,"a_conv":0,"a_cont_r":0,"a_conv_r":0,"m_leads":137,"m_cont":79,"m_conv":13,"m_cont_r":57.7,"m_conv_r":16.5,"delta_cont":79,"delta_conv":13,"delta_cont_r":57.7,"delta_conv_r":16.5},{"name":"Daniel Caceres","tl":"AG","new":true,"a_leads":0,"a_cont":0,"a_conv":0,"a_cont_r":0,"a_conv_r":0,"m_leads":139,"m_cont":93,"m_conv":3,"m_cont_r":66.9,"m_conv_r":3.2,"delta_cont":93,"delta_conv":3,"delta_cont_r":66.9,"delta_conv_r":3.2},{"name":"Maximiliano Velazquez","tl":"AG","new":true,"a_leads":0,"a_cont":0,"a_conv":0,"a_cont_r":0,"a_conv_r":0,"m_leads":133,"m_cont":115,"m_conv":10,"m_cont_r":86.5,"m_conv_r":8.7,"delta_cont":115,"delta_conv":10,"delta_cont_r":86.5,"delta_conv_r":8.7},
+{"name":"Micaela Marsuzi","tl":"FQ","gone":true,"a_leads":254,"a_cont":110,"a_conv":9,"a_cont_r":43.1,"a_conv_r":8.2,"m_leads":0,"m_cont":0,"m_conv":0,"m_cont_r":0.0,"m_conv_r":0.0,"delta_cont":-110,"delta_conv":-9,"delta_cont_r":-43.1,"delta_conv_r":-8.2},{"name":"Catalina Fernandez","tl":"AG","gone":true,"a_leads":246,"a_cont":92,"a_conv":8,"a_cont_r":37.2,"a_conv_r":8.6,"m_leads":0,"m_cont":0,"m_conv":0,"m_cont_r":0.0,"m_conv_r":0.0,"delta_cont":-92,"delta_conv":-8,"delta_cont_r":-37.2,"delta_conv_r":-8.6},{"name":"Camila Coca","tl":"AG","gone":true,"a_leads":260,"a_cont":128,"a_conv":7,"a_cont_r":49.1,"a_conv_r":5.3,"m_leads":0,"m_cont":0,"m_conv":0,"m_cont_r":0.0,"m_conv_r":0.0,"delta_cont":-128,"delta_conv":-7,"delta_cont_r":-49.1,"delta_conv_r":-5.3},{"name":"Azul Pacioni","tl":"FQ","gone":true,"a_leads":253,"a_cont":118,"a_conv":5,"a_cont_r":46.4,"a_conv_r":3.8,"m_leads":0,"m_cont":0,"m_conv":0,"m_cont_r":0.0,"m_conv_r":0.0,"delta_cont":-118,"delta_conv":-5,"delta_cont_r":-46.4,"delta_conv_r":-3.8}];
+
+// ── Tab switching ─────────────────────────────────────────────────────────────
+function showView(id) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ── Campaign charts ───────────────────────────────────────────────────────────
+function makeBar(id, labels, d1, d2, l1, l2, fmtCb) {
+  new Chart(document.getElementById(id), {
+    type:'bar',
+    data:{labels,datasets:[
+      {label:l1,data:d1,backgroundColor:'#4C72B099',borderColor:'#4C72B0',borderWidth:1.5,borderRadius:5},
+      {label:l2,data:d2,backgroundColor:'#DD845299',borderColor:'#DD8452',borderWidth:1.5,borderRadius:5},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top',labels:{usePointStyle:true,padding:14,font:{size:12}}},
+        tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+(fmtCb?fmtCb(ctx.parsed.y):ctx.parsed.y)}}},
+      scales:{x:{grid:{display:false},ticks:{font:{size:11}}},y:{beginAtZero:true,ticks:{callback:v=>fmtCb?fmtCb(v):v}}}
+    }
+  });
+}
+makeBar('ch-cont-camp',['CALENTAMIENTO','PROMO CUOTAS','TOTAL'],[641,630,1643],[395,575,1628],'Abril →D26 (proy.)','Mayo D26');
+makeBar('ch-conv-camp',['CALENTAMIENTO','PROMO CUOTAS','TOTAL'],[85,60,118],[49,79,103],'Abril →D26 (proy.)','Mayo D26');
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function tlBadge(tl){return`<span class="badge badge-${tl.toLowerCase()}">${tl}</span>`}
+function neg(v,sfx){return`<span class="cell-neg">${v>=0?'+':''}${v}${sfx}</span>`}
+function pos(v,sfx){return`<span class="cell-pos">${v>=0?'+':''}${v}${sfx}</span>`}
+function colored(v,sfx,thr=0){return v<=-thr?neg(v,sfx):v>=thr&&thr>0?pos(v,sfx):`<span style="color:#6b7280">${v>=0?'+':''}${v}${sfx}</span>`}
+
+// ── Peores/Mejores lists ──────────────────────────────────────────────────────
+function makeList(containerId, sorted, field, labelFn, isGood) {
+  const top = sorted.slice(0, 7);
+  const el = document.getElementById(containerId);
+  el.innerHTML = top.map((r, i) => {
+    const val = r[field];
+    const isNeg = val < 0;
+    return `<div class="advisor-row">
+      <div class="rank-num${isGood?' green':''}">${i+1}</div>
+      <div class="advisor-name">${r.name} <span class="advisor-tl">${tlBadge(r.tl)}</span></div>
+      <div class="nums">
+        <div class="abr">ABR: ${labelFn(r,'a')}</div>
+        <div class="may">MAY: ${labelFn(r,'m')}</div>
+        <div class="d ${isNeg?'cell-neg':'cell-pos'}">${val>=0?'+':''}${val}${field.includes('_r')?'pp':''}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// Solo comparables (tienen ambos meses, no son nuevos ni se fueron)
+const COMP = DATA.filter(r => !r.new && !r.gone);
+
+// Peores contactados (más negativo primero)
+const byContAsc = [...COMP].sort((a,b)=>a.delta_cont-b.delta_cont);
+makeList('list-peor-cont', byContAsc, 'delta_cont',
+  (r,m)=>m==='a'?r.a_cont:r.m_cont, false);
+
+// Peores conversiones
+const byConvAsc = [...COMP].sort((a,b)=>a.delta_conv-b.delta_conv);
+makeList('list-peor-conv', byConvAsc, 'delta_conv',
+  (r,m)=>m==='a'?r.a_conv:r.m_conv, false);
+
+// Mejores contactados
+const byContDesc = [...COMP].sort((a,b)=>b.delta_cont-a.delta_cont);
+makeList('list-mejor-cont', byContDesc, 'delta_cont',
+  (r,m)=>m==='a'?r.a_cont:r.m_cont, true);
+
+// Mejores conversiones
+const byConvDesc = [...COMP].sort((a,b)=>b.delta_conv-a.delta_conv);
+makeList('list-mejor-conv', byConvDesc, 'delta_conv',
+  (r,m)=>m==='a'?r.a_conv:r.m_conv, true);
+
+// ── Tabla full ────────────────────────────────────────────────────────────────
+let sortField = 'delta_cont';
+let sortDir = 1; // 1=asc (worst first for negatives)
+
+function renderFull() {
+  const tl = document.getElementById('flt-tl').value;
+  const sort = document.getElementById('flt-sort').value;
+  const q = document.getElementById('flt-q').value.toLowerCase();
+
+  let rows = DATA.filter(r =>
+    (!tl || r.tl === tl) &&
+    (!q || r.name.toLowerCase().includes(q))
+  );
+
+  const isDesc = sort === 'm_conv' || sort === 'm_cont';
+  rows.sort((a,b) => isDesc ? b[sort]-a[sort] : a[sort]-b[sort]);
+
+  const tbody = document.getElementById('full-tbody');
+  tbody.innerHTML = rows.map(r => {
+    const dc = r.delta_cont;
+    const dv = r.delta_conv;
+    const dr = r.delta_cont_r;
+    const abrCol = r.new
+      ? `<td colspan="3" style="color:#9ca3af;font-style:italic;text-align:center">— nuevo —</td>`
+      : `<td>${r.a_leads}</td><td><strong>${r.a_cont}</strong> <small style="color:#9ca3af">${r.a_cont_r}%</small></td><td><strong>${r.a_conv}</strong></td>`;
+    const mayCol = r.gone
+      ? `<td colspan="3" style="color:#9ca3af;font-style:italic;text-align:center">— ya no está —</td>`
+      : `<td>${r.m_leads}</td><td><strong>${r.m_cont}</strong> <small style="color:#9ca3af">${r.m_cont_r}%</small></td><td><strong>${r.m_conv}</strong></td>`;
+    const deltaCol = (r.new || r.gone)
+      ? `<td colspan="3" style="color:#9ca3af;font-size:11px;text-align:center">${r.gone?'se fue: −'+r.a_conv+' conv':'sin comparación'}</td>`
+      : `<td>${colored(dc,'',5)}</td><td>${colored(dr,'pp',3)}</td><td>${colored(dv,'',2)}</td>`;
+    const nombreTag = r.new
+      ? `${r.name} <span style="background:#fef9c3;color:#a16207;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:4px">NUEVO</span>`
+      : r.gone
+        ? `${r.name} <span style="background:#fee2e2;color:#991b1b;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:4px">YA NO ESTÁ</span>`
+        : r.name;
+    return `<tr>
+      <td>${nombreTag}</td>
+      <td>${tlBadge(r.tl)}</td>
+      ${abrCol}
+      ${mayCol}
+      ${deltaCol}
+    </tr>`;
+  }).join('');
+}
+renderFull();
+</script>
+</body>
+</html>
