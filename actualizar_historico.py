@@ -21,6 +21,17 @@ GITHUB_REPO   = "joaquinbalparda-droid/funnel-principalidad"
 GITHUB_FILE   = "funnel_dashboard.html"
 GITHUB_BRANCH = "main"
 
+# GCP credentials: si hay GCP_CREDENTIALS_JSON en env, escribirla a un archivo temporal
+_gcp_creds_json = os.environ.get("GCP_CREDENTIALS_JSON")
+if _gcp_creds_json:
+    import tempfile, atexit
+    _tmpfile = tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False)
+    _tmpfile.write(_gcp_creds_json)
+    _tmpfile.close()
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = _tmpfile.name
+    atexit.register(os.unlink, _tmpfile.name)
+    print(f"  [GH Actions] Credenciales GCP cargadas desde env var ✓")
+
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 HTML_PATH  = os.path.join(SCRIPT_DIR, "funnel_dashboard.html")
 BQ_PROJECT = "meli-bi-data"
