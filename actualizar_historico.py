@@ -948,6 +948,15 @@ def read_portfolio_from_looker(n_meses=3):
     COL_M0_OK      = 103
     COL_TL         = 109
     COL_POT_FINAL  = 115  # POTENCIADO (clasificación M2 completa)
+    # TPV/VC M1 y M2 por cust_id (para seguimiento de evolución)
+    COL_TPV_INC_M1 = 32   # TPV incremental M1 (POINT/Total)
+    COL_VC_INC_M1  = 33
+    COL_TPV_INC_M2 = 44   # TPV incremental M2 (POINT/Total)
+    COL_VC_INC_M2  = 45
+    COL_TPV_M1_QR  = 65
+    COL_TPV_M2_QR  = 74
+    COL_TPV_M1_LNK = 92
+    COL_TPV_M2_LNK = 100
     TPV_MIN        = 2_000_000
     TPV_PCT        = 0.30
 
@@ -1034,6 +1043,14 @@ def read_portfolio_from_looker(n_meses=3):
         vc_qr     = _parse(row[COL_VC_INC_QR])  if len(row) > COL_VC_INC_QR  else 0.0
         tpv_lnk   = _parse(row[COL_TPV_INC_LNK])if len(row) > COL_TPV_INC_LNK else 0.0
         vc_lnk    = _parse(row[COL_VC_INC_LNK]) if len(row) > COL_VC_INC_LNK  else 0.0
+        tpv_m1    = _parse(row[COL_TPV_INC_M1]) if len(row) > COL_TPV_INC_M1  else 0.0
+        vc_m1     = _parse(row[COL_VC_INC_M1])  if len(row) > COL_VC_INC_M1   else 0.0
+        tpv_m2    = _parse(row[COL_TPV_INC_M2]) if len(row) > COL_TPV_INC_M2  else 0.0
+        vc_m2     = _parse(row[COL_VC_INC_M2])  if len(row) > COL_VC_INC_M2   else 0.0
+        tpv_m1_qr = _parse(row[COL_TPV_M1_QR])  if len(row) > COL_TPV_M1_QR   else 0.0
+        tpv_m2_qr = _parse(row[COL_TPV_M2_QR])  if len(row) > COL_TPV_M2_QR   else 0.0
+        tpv_m1_lnk= _parse(row[COL_TPV_M1_LNK]) if len(row) > COL_TPV_M1_LNK  else 0.0
+        tpv_m2_lnk= _parse(row[COL_TPV_M2_LNK]) if len(row) > COL_TPV_M2_LNK  else 0.0
         # Potenciado: regla TPV INC M0 > $2M y > 30% del baseline
         is_pot_m0 = int(tpv_inc > TPV_MIN and tpv_inc > tpv_base * TPV_PCT)
         # Potenciado final (clasificación M2, del sheet)
@@ -1053,6 +1070,14 @@ def read_portfolio_from_looker(n_meses=3):
             'vc_lnk':   round(vc_lnk, 2),
             'pot':      is_pot_m0,
             'pot_final': is_pot_final,
+            'tpv_m1':   round(tpv_m1,  2),
+            'vc_m1':    round(vc_m1,   2),
+            'tpv_m2':   round(tpv_m2,  2),
+            'vc_m2':    round(vc_m2,   2),
+            'tpv_m1_qr':  round(tpv_m1_qr,  2),
+            'tpv_m2_qr':  round(tpv_m2_qr,  2),
+            'tpv_m1_lnk': round(tpv_m1_lnk, 2),
+            'tpv_m2_lnk': round(tpv_m2_lnk, 2),
         })
 
     print(f"  Portfolio: {len(result)} sellers en {len(cohorts)} cohorts ({skipped} omitidos)")
