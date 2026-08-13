@@ -228,7 +228,7 @@
 
     <button class="section-btn hist-btn" onclick="switchSection('hist',this)">&#128202; GESTI&#211;N HIST&#211;RICA</button>
 
-    <button class="section-btn tpv-btn" onclick="switchSection('tpv',this)">&#128640; POTENCIADOS</button>
+    <button class="section-btn tpv-btn" onclick="switchSection('tpv',this)">&#128203; SEGUIMIENTO</button>
 
     <button class="section-btn cumpl-btn" onclick="switchSection('cumpl',this)">&#127919; CUMPLIMIENTO</button>
 
@@ -388,7 +388,7 @@
 
     <div class="table-card">
 
-      <h3>Evoluci&#243;n mensual</h3>
+      <h3>Evoluci&#243;n mensual — Funnel (BigQuery)</h3>
 
       <div class="table-wrap"><table>
 
@@ -407,6 +407,43 @@
         <tbody id="h-tbody"></tbody>
 
       </table></div>
+
+    </div>
+
+    <!-- ═══ LOOKERV2 — Resultados por Cohort ═══ -->
+    <div class="table-card" style="border-top:4px solid #8b5cf6">
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+
+        <h3 style="margin:0">&#128200; Resultados Cohort — LOOKERV2 (TPV / VC / Potenciados)</h3>
+
+        <div style="display:flex;gap:8px;align-items:center">
+
+          <select id="looker-hist-view" onchange="renderLookerHistTable()" style="padding:4px 10px;border-radius:8px;border:2px solid var(--border);font-size:12px;font-weight:700;background:var(--card);cursor:pointer">
+
+            <option value="mes">Resumen por Mes</option>
+
+            <option value="asesor">Detalle por Asesor</option>
+
+          </select>
+
+        </div>
+
+      </div>
+
+      <div class="charts-grid" style="grid-template-columns:1fr 1fr;margin-bottom:var(--gap)">
+
+        <div class="chart-card"><h3>Convertidos por Cohort</h3><div class="chart-wrap"><canvas id="chart-lk-conv"></canvas></div></div>
+
+        <div class="chart-card"><h3>Potenciados por Cohort</h3><div class="chart-wrap"><canvas id="chart-lk-pot"></canvas></div></div>
+
+        <div class="chart-card"><h3>TPV Incremental por Cohort</h3><div class="chart-wrap"><canvas id="chart-lk-tpv"></canvas></div></div>
+
+        <div class="chart-card"><h3>VC Incremental por Cohort</h3><div class="chart-wrap"><canvas id="chart-lk-vc"></canvas></div></div>
+
+      </div>
+
+      <div id="looker-hist-tbody"></div>
 
     </div>
 
@@ -460,6 +497,29 @@
     <div id="gestion-resumen-card" style="margin-bottom:var(--gap)">
 
       <!-- Resumen numérico del equipo -->
+
+    <!-- ══════════ SEGUIMIENTO: tabla de convertidos por cust_id ══════════ -->
+    <div class="table-card" id="seg-card" style="border-top:4px solid #8b5cf6;margin-bottom:24px">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px">
+        <h3 style="margin:0">&#128203; Seguimiento — Convertidos &uacute;ltimos 3 meses</h3>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <select id="seg-cohort" onchange="renderSeguimiento()" style="padding:4px 10px;border-radius:8px;border:2px solid var(--border);font-size:12px;font-weight:700;background:var(--card);cursor:pointer">
+            <option value="all">Todos los cohorts</option>
+          </select>
+          <select id="seg-asesor-sel" onchange="renderSeguimiento()" style="padding:4px 10px;border-radius:8px;border:2px solid var(--border);font-size:12px;font-weight:700;background:var(--card);cursor:pointer">
+            <option value="all">Todos los asesores</option>
+          </select>
+          <select id="seg-pot" onchange="renderSeguimiento()" style="padding:4px 10px;border-radius:8px;border:2px solid var(--border);font-size:12px;font-weight:700;background:var(--card);cursor:pointer">
+            <option value="all">Todos</option>
+            <option value="1">Solo potenciados</option>
+            <option value="0">No potenciados</option>
+          </select>
+        </div>
+      </div>
+      <div id="seg-kpi-row" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px"></div>
+      <div id="seg-tbody" style="overflow-x:auto"></div>
+    </div>
+
       <div class="kpi-row" id="resumen-kpi-row" style="margin-bottom:var(--gap)"></div>
 
       <!-- TOP 10 / BOTTOM 10 — Performance (Conv + Pot + TPV POINT) -->
@@ -1631,6 +1691,334 @@ function renderHist(){
 
   renderHistTable(byMes);
 
+  renderLookerHist();
+
+}
+
+
+// ══════════════════════════════════════════════════════════════════════════════
+// HISTÓRICO DESDE LOOKERV2 (TPV_COHORT_DATA)
+// ══════════════════════════════════════════════════════════════════════════════
+
+var lkChartConv=null, lkChartPot=null, lkChartTpv=null, lkChartVc=null;
+
+function getLookerHistFiltered(){
+  return (TPV_COHORT_DATA||[]).filter(function(r){
+    if(CUR_TL!=='all' && r.tl!==CUR_TL) return false;
+    if(CUR_ASESOR!=='all' && r.name!==CUR_ASESOR) return false;
+    return true;
+  });
+}
+
+function aggLookerByMes(rows){
+  var map={};
+  rows.forEach(function(r){
+    var m=r.cohort;
+    if(!map[m])map[m]={mes:m,conv:0,pot0:0,pot1:0,pot2:0,tpv0:0,tpv1:0,tpv2:0,vc0:0,vc1:0,vc2:0,tpvQR0:0,tpvQR1:0,tpvQR2:0,tpvLnk0:0,tpvLnk1:0,tpvLnk2:0};
+    var m2=map[m];
+    m2.conv+=r.conv||0;
+    m2.pot0+=r.pot_m0||0; m2.pot1+=r.pot_m1||0; m2.pot2+=r.pot_m2||0;
+    m2.tpv0+=r.tpv_inc_m0||0; m2.tpv1+=r.tpv_inc_m1||0; m2.tpv2+=r.tpv_inc_m2||0;
+    m2.vc0+=r.vc_inc_m0||0;   m2.vc1+=r.vc_inc_m1||0;   m2.vc2+=r.vc_inc_m2||0;
+    m2.tpvQR0+=r.tpv_inc_m0_qr||0;  m2.tpvQR1+=r.tpv_inc_m1_qr||0;  m2.tpvQR2+=r.tpv_inc_m2_qr||0;
+    m2.tpvLnk0+=r.tpv_inc_m0_link||0; m2.tpvLnk1+=r.tpv_inc_m1_link||0; m2.tpvLnk2+=r.tpv_inc_m2_link||0;
+  });
+  return Object.values(map).sort(function(a,b){return a.mes-b.mes;});
+}
+
+function renderLookerHistCharts(byMes){
+  var labels=byMes.map(function(r){return mesLabel(r.mes);});
+
+  function dset(label,data,color,fill){
+    return {label:label,data:data,borderColor:color,backgroundColor:fill||color+'33',tension:0.3,fill:!!fill,pointRadius:4,pointHoverRadius:6};
+  }
+
+  // Conv
+  if(lkChartConv){lkChartConv.destroy();lkChartConv=null;}
+  var ctxC=document.getElementById('chart-lk-conv');
+  if(ctxC){
+    lkChartConv=new Chart(ctxC.getContext('2d'),{type:'bar',data:{labels:labels,datasets:[
+      {label:'Convertidos',data:byMes.map(function(r){return r.conv;}),backgroundColor:'#8b5cf6aa'}
+    ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{beginAtZero:true}}}});
+  }
+
+  // Pot
+  if(lkChartPot){lkChartPot.destroy();lkChartPot=null;}
+  var ctxP=document.getElementById('chart-lk-pot');
+  if(ctxP){
+    lkChartPot=new Chart(ctxP.getContext('2d'),{type:'bar',data:{labels:labels,datasets:[
+      {label:'Pot M0',data:byMes.map(function(r){return r.pot0;}),backgroundColor:'#8b5cf6aa',stack:'a'},
+      {label:'Pot M1',data:byMes.map(function(r){return r.pot1;}),backgroundColor:'#3483FAaa',stack:'a'},
+      {label:'Pot M2',data:byMes.map(function(r){return r.pot2;}),backgroundColor:'#00A650aa',stack:'a'}
+    ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}},scales:{x:{grid:{display:false},stacked:true},y:{beginAtZero:true,stacked:true}}}});
+  }
+
+  // TPV
+  if(lkChartTpv){lkChartTpv.destroy();lkChartTpv=null;}
+  var ctxT=document.getElementById('chart-lk-tpv');
+  if(ctxT){
+    lkChartTpv=new Chart(ctxT.getContext('2d'),{type:'bar',data:{labels:labels,datasets:[
+      {label:'POINT',data:byMes.map(function(r){return Math.round(r.tpv0/1e6*100)/100;}),backgroundColor:'#8b5cf6aa',stack:'a'},
+      {label:'QR',data:byMes.map(function(r){return Math.round(r.tpvQR0/1e6*100)/100;}),backgroundColor:'#0ea5e9aa',stack:'a'},
+      {label:'Link',data:byMes.map(function(r){return Math.round(r.tpvLnk0/1e6*100)/100;}),backgroundColor:'#f97316aa',stack:'a'}
+    ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}},scales:{x:{grid:{display:false},stacked:true},y:{beginAtZero:true,stacked:true,ticks:{callback:function(v){return'$'+v+'M';}}}}}}});
+  }
+
+  // VC
+  if(lkChartVc){lkChartVc.destroy();lkChartVc=null;}
+  var ctxV=document.getElementById('chart-lk-vc');
+  if(ctxV){
+    lkChartVc=new Chart(ctxV.getContext('2d'),{type:'bar',data:{labels:labels,datasets:[
+      {label:'VC M0',data:byMes.map(function(r){return Math.round(r.vc0/1e6*100)/100;}),backgroundColor:'#8b5cf6aa',stack:'a'},
+      {label:'VC M1',data:byMes.map(function(r){return Math.round(r.vc1/1e6*100)/100;}),backgroundColor:'#3483FAaa',stack:'a'},
+      {label:'VC M2',data:byMes.map(function(r){return Math.round(r.vc2/1e6*100)/100;}),backgroundColor:'#00A650aa',stack:'a'}
+    ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}},scales:{x:{grid:{display:false},stacked:true},y:{beginAtZero:true,stacked:true,ticks:{callback:function(v){return'$'+v+'M'}}}}}});
+  }
+}
+
+function renderLookerHistTable(){
+  var rows=getLookerHistFiltered();
+  var view=document.getElementById('looker-hist-view');
+  var mode=view?view.value:'mes';
+  var el=document.getElementById('looker-hist-tbody');
+  if(!el)return;
+
+  if(!rows.length){
+    el.innerHTML='<p style="color:var(--muted);padding:16px;font-size:13px">Sin datos LOOKERV2 — ejecutar actualizar_historico.py</p>';
+    return;
+  }
+
+  var h='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
+  h+='<thead><tr style="background:#1a1a2e;color:#fff">';
+
+  if(mode==='mes'){
+    h+='<th style="padding:7px 10px;text-align:left">Cohort</th>';
+    h+='<th style="padding:7px 10px">Conv.</th>';
+    h+='<th style="padding:7px 10px;color:#a78bfa">Pot M0</th>';
+    h+='<th style="padding:7px 10px;color:#60a5fa">Pot M1</th>';
+    h+='<th style="padding:7px 10px;color:#6ee7b7">Pot M2</th>';
+    h+='<th style="padding:7px 10px;color:#a78bfa">TPV Inc M0</th>';
+    h+='<th style="padding:7px 10px;color:#93c5fd">QR M0</th>';
+    h+='<th style="padding:7px 10px;color:#fdb47c">Link M0</th>';
+    h+='<th style="padding:7px 10px;color:#a78bfa">VC Inc M0</th>';
+    h+='</tr></thead><tbody>';
+
+    var byMes=aggLookerByMes(rows);
+    byMes.forEach(function(r){
+      h+='<tr style="border-bottom:1px solid #f0f0f0">';
+      h+='<td style="padding:6px 10px;font-weight:700">'+mesLabel(r.mes)+'</td>';
+      h+='<td style="padding:6px 10px;text-align:center">'+r.conv+'</td>';
+      h+='<td style="padding:6px 10px;text-align:center;color:#8b5cf6;font-weight:700">'+(r.pot0||'–')+'</td>';
+      h+='<td style="padding:6px 10px;text-align:center;color:#3483FA;font-weight:700">'+(r.pot1||'–')+'</td>';
+      h+='<td style="padding:6px 10px;text-align:center;color:#00A650;font-weight:700">'+(r.pot2||'–')+'</td>';
+      h+='<td style="padding:6px 10px;text-align:right;font-weight:700;color:#8b5cf6">'+(r.tpv0>0?'$'+fmtM(r.tpv0):'–')+'</td>';
+      h+='<td style="padding:6px 10px;text-align:right;color:#0ea5e9">'+(r.tpvQR0>0?'$'+fmtM(r.tpvQR0):'–')+'</td>';
+      h+='<td style="padding:6px 10px;text-align:right;color:#f97316">'+(r.tpvLnk0>0?'$'+fmtM(r.tpvLnk0):'–')+'</td>';
+      h+='<td style="padding:6px 10px;text-align:right;color:#8b5cf6">'+(r.vc0>0?'$'+fmtM(r.vc0):'–')+'</td>';
+      h+='</tr>';
+    });
+
+    // Totales
+    var tot=aggLookerByMes(rows).reduce(function(acc,r){
+      acc.conv+=r.conv; acc.pot0+=r.pot0; acc.pot1+=r.pot1; acc.pot2+=r.pot2;
+      acc.tpv0+=r.tpv0; acc.tpvQR0+=r.tpvQR0; acc.tpvLnk0+=r.tpvLnk0; acc.vc0+=r.vc0;
+      return acc;
+    },{conv:0,pot0:0,pot1:0,pot2:0,tpv0:0,tpvQR0:0,tpvLnk0:0,vc0:0});
+    h+='<tr style="background:#f9fafb;font-weight:700;border-top:2px solid #d1d5db">';
+    h+='<td style="padding:7px 10px">TOTAL</td>';
+    h+='<td style="padding:7px 10px;text-align:center">'+tot.conv+'</td>';
+    h+='<td style="padding:7px 10px;text-align:center;color:#8b5cf6">'+tot.pot0+'</td>';
+    h+='<td style="padding:7px 10px;text-align:center;color:#3483FA">'+tot.pot1+'</td>';
+    h+='<td style="padding:7px 10px;text-align:center;color:#00A650">'+tot.pot2+'</td>';
+    h+='<td style="padding:7px 10px;text-align:right;color:#8b5cf6">$'+fmtM(tot.tpv0)+'</td>';
+    h+='<td style="padding:7px 10px;text-align:right;color:#0ea5e9">$'+fmtM(tot.tpvQR0)+'</td>';
+    h+='<td style="padding:7px 10px;text-align:right;color:#f97316">$'+fmtM(tot.tpvLnk0)+'</td>';
+    h+='<td style="padding:7px 10px;text-align:right;color:#8b5cf6">$'+fmtM(tot.vc0)+'</td>';
+    h+='</tr>';
+
+  } else {
+    // Detalle por asesor
+    h+='<th style="padding:7px 10px;text-align:left">TL</th>';
+    h+='<th style="padding:7px 10px;text-align:left">Asesor</th>';
+    h+='<th style="padding:7px 10px">Cohort</th>';
+    h+='<th style="padding:7px 10px">Conv.</th>';
+    h+='<th style="padding:7px 10px;color:#a78bfa">Pot M0</th>';
+    h+='<th style="padding:7px 10px;color:#60a5fa">Pot M1</th>';
+    h+='<th style="padding:7px 10px;color:#6ee7b7">Pot M2</th>';
+    h+='<th style="padding:7px 10px;color:#a78bfa">TPV Inc M0</th>';
+    h+='<th style="padding:7px 10px;color:#93c5fd">QR M0</th>';
+    h+='<th style="padding:7px 10px;color:#fdb47c">Link M0</th>';
+    h+='<th style="padding:7px 10px;color:#a78bfa">VC Inc M0</th>';
+    h+='</tr></thead><tbody>';
+
+    var sorted=rows.slice().sort(function(a,b){
+      if(b.cohort!==a.cohort)return b.cohort-a.cohort;
+      if(a.tl!==b.tl)return a.tl<b.tl?-1:1;
+      return a.name<b.name?-1:1;
+    });
+    sorted.forEach(function(r){
+      var tlc=TL_COLORS[r.tl]||'#888';
+      h+='<tr style="border-bottom:1px solid #f0f0f0">';
+      h+='<td style="padding:5px 8px"><span style="font-weight:700;color:'+tlc+'">'+(TL_NAMES[r.tl]||r.tl)+'</span></td>';
+      h+='<td style="padding:5px 8px;font-weight:600">'+r.name+'</td>';
+      h+='<td style="padding:5px 8px;text-align:center">'+mesLabel(r.cohort)+'</td>';
+      h+='<td style="padding:5px 8px;text-align:center">'+r.conv+'</td>';
+      h+='<td style="padding:5px 8px;text-align:center;color:#8b5cf6">'+(r.pot_m0>0?'<span class="pill high">'+r.pot_m0+'</span>':'–')+'</td>';
+      h+='<td style="padding:5px 8px;text-align:center;color:#3483FA">'+(r.pot_m1>0?'<span class="pill high">'+r.pot_m1+'</span>':'–')+'</td>';
+      h+='<td style="padding:5px 8px;text-align:center;color:#00A650">'+(r.pot_m2>0?'<span class="pill high">'+r.pot_m2+'</span>':'–')+'</td>';
+      h+='<td style="padding:5px 8px;text-align:right;font-weight:700;color:#8b5cf6">'+(r.tpv_inc_m0>0?'$'+fmtM(r.tpv_inc_m0):'–')+'</td>';
+      h+='<td style="padding:5px 8px;text-align:right;color:#0ea5e9">'+(r.tpv_inc_m0_qr>0?'$'+fmtM(r.tpv_inc_m0_qr):'–')+'</td>';
+      h+='<td style="padding:5px 8px;text-align:right;color:#f97316">'+(r.tpv_inc_m0_link>0?'$'+fmtM(r.tpv_inc_m0_link):'–')+'</td>';
+      h+='<td style="padding:5px 8px;text-align:right;color:#8b5cf6">'+(r.vc_inc_m0>0?'$'+fmtM(r.vc_inc_m0):'–')+'</td>';
+      h+='</tr>';
+    });
+  }
+
+  h+='</tbody></table></div>';
+  el.innerHTML=h;
+}
+
+function renderLookerHist(){
+  var rows=getLookerHistFiltered();
+  var byMes=aggLookerByMes(rows);
+  renderLookerHistCharts(byMes);
+  renderLookerHistTable();
+}
+
+
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SEGUIMIENTO — tabla de convertidos por cust_id (PORTFOLIO_DATA)
+// ══════════════════════════════════════════════════════════════════════════════
+
+function populateSegFilters(){
+  var data = (PORTFOLIO_DATA||[]).filter(function(r){
+    if(CUR_TL!=='all' && r.tl!==CUR_TL) return false;
+    return true;
+  });
+
+  // Cohorts
+  var cohorts=[...new Set(data.map(function(r){return r.mes;}))].sort(function(a,b){return b-a;});
+  var sc=document.getElementById('seg-cohort');
+  if(sc){
+    var prev=sc.value;
+    sc.innerHTML='<option value="all">Todos los cohorts</option>';
+    cohorts.forEach(function(c){
+      var opt=document.createElement('option');
+      opt.value=c; opt.textContent=mesLabel(c);
+      if(String(c)===prev)opt.selected=true;
+      sc.appendChild(opt);
+    });
+  }
+
+  // Asesores
+  var asesores=[...new Set(data.map(function(r){return r.asesor;}))].sort();
+  var sa=document.getElementById('seg-asesor-sel');
+  if(sa){
+    var prev2=sa.value;
+    sa.innerHTML='<option value="all">Todos los asesores</option>';
+    asesores.forEach(function(a){
+      var opt=document.createElement('option');
+      opt.value=a; opt.textContent=a;
+      if(a===prev2)opt.selected=true;
+      sa.appendChild(opt);
+    });
+  }
+}
+
+function getSegFiltered(){
+  var cohortVal = (document.getElementById('seg-cohort')||{}).value||'all';
+  var asesorVal = (document.getElementById('seg-asesor-sel')||{}).value||'all';
+  var potVal    = (document.getElementById('seg-pot')||{}).value||'all';
+  return (PORTFOLIO_DATA||[]).filter(function(r){
+    if(CUR_TL!=='all' && r.tl!==CUR_TL) return false;
+    if(cohortVal!=='all' && String(r.mes)!==String(cohortVal)) return false;
+    if(asesorVal!=='all' && r.asesor!==asesorVal) return false;
+    if(potVal==='1' && !r.pot_final) return false;
+    if(potVal==='0' && r.pot_final) return false;
+    return true;
+  });
+}
+
+function renderSeguimiento(){
+  populateSegFilters();
+  var rows = getSegFiltered();
+  var kpiEl = document.getElementById('seg-kpi-row');
+  var tbEl  = document.getElementById('seg-tbody');
+  if(!kpiEl||!tbEl) return;
+
+  if(!rows.length){
+    kpiEl.innerHTML='';
+    tbEl.innerHTML='<p style="color:var(--muted);padding:16px;font-size:13px">Sin datos — ejecutar actualizar_historico.py para poblar PORTFOLIO_DATA</p>';
+    return;
+  }
+
+  // KPIs
+  var total=rows.length;
+  var potCount=rows.filter(function(r){return r.pot_final;}).length;
+  var potPct=total?Math.round(potCount/total*100):0;
+  var tpvBase=rows.reduce(function(s,r){return s+(r.tpv_base||0);},0);
+  var tpvM0=rows.reduce(function(s,r){return s+(r.tpv_inc||0);},0);
+  var tpvM1=rows.reduce(function(s,r){return s+(r.tpv_m1||0);},0);
+  var tpvM2=rows.reduce(function(s,r){return s+(r.tpv_m2||0);},0);
+
+  kpiEl.innerHTML=
+    '<div class="tpv-card inc"><div class="tpv-label">Convertidos</div><div class="tpv-value">'+total+'</div><div class="tpv-sub">en seguimiento</div></div>'+
+    '<div class="tpv-card pot"><div class="tpv-label">Potenciados</div><div class="tpv-value">'+potCount+'</div><div class="tpv-sub">'+potPct+'% del total</div></div>'+
+    '<div class="tpv-card tpv"><div class="tpv-label">TPV M-1 base</div><div class="tpv-value">$'+fmtM(tpvBase)+'</div><div class="tpv-sub">pre-conversión</div></div>'+
+    '<div class="tpv-card tpv" style="border-color:#8b5cf6"><div class="tpv-label">TPV M0 (Point)</div><div class="tpv-value" style="color:#8b5cf6">$'+fmtM(tpvM0)+'</div><div class="tpv-sub">mes de conversión</div></div>'+
+    (tpvM1>0?'<div class="tpv-card tpv" style="border-color:#3483FA"><div class="tpv-label">TPV M1</div><div class="tpv-value" style="color:#3483FA">$'+fmtM(tpvM1)+'</div><div class="tpv-sub">mes siguiente</div></div>':'')+
+    (tpvM2>0?'<div class="tpv-card tpv" style="border-color:#00A650"><div class="tpv-label">TPV M2</div><div class="tpv-value" style="color:#00A650">$'+fmtM(tpvM2)+'</div><div class="tpv-sub">2do mes post-conv</div></div>':'');
+
+  // Tabla
+  var h='<table style="width:100%;border-collapse:collapse;font-size:12px">';
+  h+='<thead><tr style="background:#1a1a2e;color:#fff;position:sticky;top:0">';
+  h+='<th style="padding:8px 10px;text-align:left">Cust ID</th>';
+  h+='<th style="padding:8px 10px;text-align:left">Asesor</th>';
+  h+='<th style="padding:8px 10px">TL</th>';
+  h+='<th style="padding:8px 10px">Cohort</th>';
+  h+='<th style="padding:8px 10px;color:#9ca3af">TPV M-1</th>';
+  h+='<th style="padding:8px 10px;color:#a78bfa">TPV M0</th>';
+  h+='<th style="padding:8px 10px;color:#93c5fd">QR M0</th>';
+  h+='<th style="padding:8px 10px;color:#fdb47c">Link M0</th>';
+  if(rows.some(function(r){return r.tpv_m1>0;}))
+    h+='<th style="padding:8px 10px;color:#60a5fa">TPV M1</th>';
+  if(rows.some(function(r){return r.tpv_m2>0;}))
+    h+='<th style="padding:8px 10px;color:#6ee7b7">TPV M2</th>';
+  h+='<th style="padding:8px 10px">Potenciado</th>';
+  h+='</tr></thead><tbody>';
+
+  var hasTpvM1=rows.some(function(r){return r.tpv_m1>0;});
+  var hasTpvM2=rows.some(function(r){return r.tpv_m2>0;});
+
+  // sort: potenciados first, then by tpv_inc desc
+  rows.slice().sort(function(a,b){
+    if(b.pot_final!==a.pot_final) return b.pot_final-a.pot_final;
+    return (b.tpv_inc||0)-(a.tpv_inc||0);
+  }).forEach(function(r,i){
+    var bg=r.pot_final?'background:#f0fdf4':'';
+    var tlc=TL_COLORS[r.tl]||'#888';
+    h+='<tr style="border-bottom:1px solid #f0f0f0;'+bg+'">';
+    h+='<td style="padding:5px 10px;font-family:monospace;font-size:11px;font-weight:700">'+r.cust_id+'</td>';
+    h+='<td style="padding:5px 10px;font-weight:600">'+r.asesor+'</td>';
+    h+='<td style="padding:5px 10px;text-align:center"><span style="font-weight:800;color:'+tlc+'">'+(TL_NAMES[r.tl]||r.tl)+'</span></td>';
+    h+='<td style="padding:5px 10px;text-align:center;font-weight:700">'+mesLabel(r.mes)+'</td>';
+    h+='<td style="padding:5px 10px;text-align:right;color:#6b7280">'+(r.tpv_base>0?'$'+fmtM(r.tpv_base):'–')+'</td>';
+    h+='<td style="padding:5px 10px;text-align:right;font-weight:700;color:#8b5cf6">'+(r.tpv_inc>0?'$'+fmtM(r.tpv_inc):'–')+'</td>';
+    h+='<td style="padding:5px 10px;text-align:right;color:#0ea5e9">'+(r.tpv_qr>0?'$'+fmtM(r.tpv_qr):'–')+'</td>';
+    h+='<td style="padding:5px 10px;text-align:right;color:#f97316">'+(r.tpv_lnk>0?'$'+fmtM(r.tpv_lnk):'–')+'</td>';
+    if(hasTpvM1) h+='<td style="padding:5px 10px;text-align:right;color:#3483FA">'+(r.tpv_m1>0?'$'+fmtM(r.tpv_m1):'–')+'</td>';
+    if(hasTpvM2) h+='<td style="padding:5px 10px;text-align:right;color:#00A650">'+(r.tpv_m2>0?'$'+fmtM(r.tpv_m2):'–')+'</td>';
+    if(r.pot_final){
+      h+='<td style="padding:5px 10px;text-align:center"><span class="pill high">✓ POT</span></td>';
+    } else {
+      h+='<td style="padding:5px 10px;text-align:center;color:#9ca3af">—</td>';
+    }
+    h+='</tr>';
+  });
+
+  h+='</tbody></table>';
+  tbEl.innerHTML=h;
 }
 
 
@@ -2403,6 +2791,7 @@ function renderTpvSection(){
   // SIEMPRE renderizar resumen + rankings (usan DATA del mes actual)
   renderResumenGestion();
   renderRankings();
+  renderSeguimiento();
 
   if(!allRows.length){
 
