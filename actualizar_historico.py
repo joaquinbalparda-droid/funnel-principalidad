@@ -7,7 +7,7 @@ USO: python actualizar_historico.py
 REQUISITO: gcloud auth application-default login
 """
 
-import json, base64, sys, requests
+import json, base64, sys, requests, os
 from datetime import datetime
 
 if sys.stdout.encoding and sys.stdout.encoding.lower() not in ('utf-8','utf8'):
@@ -21,7 +21,6 @@ GITHUB_REPO   = "joaquinbalparda-droid/funnel-principalidad"
 GITHUB_FILE   = "funnel_dashboard.html"
 GITHUB_BRANCH = "main"
 
-import os
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 HTML_PATH  = os.path.join(SCRIPT_DIR, "funnel_dashboard.html")
 BQ_PROJECT = "meli-bi-data"
