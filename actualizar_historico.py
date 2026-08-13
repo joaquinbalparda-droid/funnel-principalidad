@@ -18,6 +18,19 @@ if sys.stderr.encoding and sys.stderr.encoding.lower() not in ('utf-8','utf8'):
 # ── CONFIGURACION ──────────────────────────────────────────────
 import os as _os
 GITHUB_TOKEN  = _os.environ.get("PERSONAL_GITHUB_TOKEN", "")
+
+# GCP credentials: si hay GCP_CREDENTIALS_JSON en env (GitHub Actions)
+import os as _os2
+_gcp_creds_json = _os2.environ.get("GCP_CREDENTIALS_JSON")
+if _gcp_creds_json:
+    import tempfile as _tmp, atexit as _atexit
+    _tmpfile = _tmp.NamedTemporaryFile(mode='w', suffix='.json', delete=False)
+    _tmpfile.write(_gcp_creds_json)
+    _tmpfile.close()
+    _os2.environ["GOOGLE_APPLICATION_CREDENTIALS"] = _tmpfile.name
+    _atexit.register(_os2.unlink, _tmpfile.name)
+    print(f"  [GH Actions] Credenciales GCP cargadas ✓")
+
 GITHUB_REPO   = "joaquinbalparda-droid/funnel-principalidad"
 GITHUB_FILE   = "funnel_dashboard.html"
 GITHUB_BRANCH = "main"
