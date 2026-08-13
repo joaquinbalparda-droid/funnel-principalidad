@@ -1,0 +1,33 @@
+name: Actualizar Dashboard Funnel
+
+on:
+  schedule:
+    - cron: '0 12 * * 1-5'
+    - cron: '0 15 * * 1-5'
+    - cron: '0 18 * * 1-5'
+    - cron: '0 21 * * 1-5'
+  workflow_dispatch:
+
+jobs:
+  actualizar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Instalar dependencias
+        run: pip install google-cloud-bigquery google-auth requests
+      - name: Actualizar dashboard
+        env:
+          GCP_CREDENTIALS_JSON: ${{ secrets.GCP_CREDENTIALS_JSON }}
+          PERSONAL_GITHUB_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
+        run: python actualizar_dashboard.py
+      - name: Actualizar historico
+        env:
+          GCP_CREDENTIALS_JSON: ${{ secrets.GCP_CREDENTIALS_JSON }}
+          PERSONAL_GITHUB_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
+        run: python actualizar_historico.py
