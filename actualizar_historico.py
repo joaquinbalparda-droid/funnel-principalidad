@@ -7,7 +7,7 @@ USO: python actualizar_historico.py
 REQUISITO: gcloud auth application-default login
 """
 
-import json, base64, sys, requests, os
+import json, base64, sys, requests
 from datetime import datetime
 
 if sys.stdout.encoding and sys.stdout.encoding.lower() not in ('utf-8','utf8'):
@@ -16,22 +16,13 @@ if sys.stderr.encoding and sys.stderr.encoding.lower() not in ('utf-8','utf8'):
     sys.stderr.reconfigure(encoding='utf-8', errors='replace')
 
 # ── CONFIGURACION ──────────────────────────────────────────────
-GITHUB_TOKEN  = os.environ.get("PERSONAL_GITHUB_TOKEN", "")
+import os as _os
+GITHUB_TOKEN  = _os.environ.get("PERSONAL_GITHUB_TOKEN", "")
 GITHUB_REPO   = "joaquinbalparda-droid/funnel-principalidad"
 GITHUB_FILE   = "funnel_dashboard.html"
 GITHUB_BRANCH = "main"
 
-# GCP credentials: si hay GCP_CREDENTIALS_JSON en env, escribirla a un archivo temporal
-_gcp_creds_json = os.environ.get("GCP_CREDENTIALS_JSON")
-if _gcp_creds_json:
-    import tempfile, atexit
-    _tmpfile = tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False)
-    _tmpfile.write(_gcp_creds_json)
-    _tmpfile.close()
-    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = _tmpfile.name
-    atexit.register(os.unlink, _tmpfile.name)
-    print(f"  [GH Actions] Credenciales GCP cargadas desde env var ✓")
-
+import os
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 HTML_PATH  = os.path.join(SCRIPT_DIR, "funnel_dashboard.html")
 BQ_PROJECT = "meli-bi-data"
@@ -626,14 +617,14 @@ def read_looker_sheet():
       pot_m1: tpv_inc_m1 > 2_000_000 AND tpv_inc_m1 > tpv_m1_base * 0.30  (solo si M1 COMPLETO)
       pot_m2: columna POTENCIADO del sheet (historia completa validada) (solo si M2 COMPLETO)
 
-    Columnas clave del sheet (índices 0-based):
+    Columnas clave del sheet (índices 0-based, mapa completo de 131 cols):
       0: CUST ID  1: MES (cohort YYYYMM)  2: ASESOR
       8: TPV M-1  (baseline = TPV mes anterior a la conversión, col I)
-     20: TPV INC M0  21: VC INC M0
-     32: TPV INC M1  33: VC INC M1
-     44: TPV INC M2  45: VC INC M2
-     46: M0 COMPLETO  47: M1 COMPLETO  48: M2 COMPLETO
-     52: TEAM LIDER  58: POTENCIADO (clasificación final = M2)
+     Total/POINT: 20 TPV INC M0, 21 VC INC M0 | 32 TPV INC M1, 33 VC INC M1 | 44 TPV INC M2, 45 VC INC M2
+     QR:          56 TPV INC M0 QR, 57 VC INC M0 QR | 65 TPV INC M1 QR, 66 VC INC M1 QR | 74 TPV INC M2 QR, 75 VC INC M2 QR
+     LINK:        84 TPV INC M0 LINK, 85 VC INC M0 LINK | 92 TPV INC M1 LINK, 93 VC INC M1 LINK | 100 TPV INC M2 LINK, 101 VC INC M2 LINK
+    103: M0 COMPLETO  104: M1 COMPLETO  105: M2 COMPLETO
+    109: TEAM LIDER  115: POTENCIADO (clasificación final = M2)
     """
     import csv, io
     from collections import defaultdict
@@ -646,16 +637,26 @@ def read_looker_sheet():
     SHEET_ID = '11xFxl_XYFIhLGmokYJM9HpBUu53uRoUhWNqdqfHVPs8'
     TAB      = 'LOOKERV2'
 
-    # Índices fijos (confirmados)
+    # Índices fijos (mapa completo de 131 columnas, confirmado)
     COL_MES      = 1
     COL_ASESOR   = 2
     COL_TPV_BASE = 8   # TPV M-1 (baseline, col I)
+    # Total / POINT
     COL_TPV_M0   = 20; COL_VC_M0  = 21
     COL_TPV_M1   = 32; COL_VC_M1  = 33
     COL_TPV_M2   = 44; COL_VC_M2  = 45
-    COL_M0_OK    = 46; COL_M1_OK  = 47; COL_M2_OK = 48
-    COL_TL       = 52
-    COL_POT_FINAL= 58  # columna POTENCIADO = clasificación M2 definitiva
+    # QR
+    COL_TPV_M0_QR = 56; COL_VC_M0_QR = 57
+    COL_TPV_M1_QR = 65; COL_VC_M1_QR = 66
+    COL_TPV_M2_QR = 74; COL_VC_M2_QR = 75
+    # Link de pago
+    COL_TPV_M0_LINK = 84; COL_VC_M0_LINK = 85
+    COL_TPV_M1_LINK = 92; COL_VC_M1_LINK = 93
+    COL_TPV_M2_LINK = 100; COL_VC_M2_LINK = 101
+    # Flags de completitud / TL / clasificación final
+    COL_M0_OK    = 103; COL_M1_OK = 104; COL_M2_OK = 105
+    COL_TL       = 109
+    COL_POT_FINAL= 115  # columna POTENCIADO = clasificación M2 definitiva
 
     TPV_MIN      = 2_000_000   # $2M mínimo incremental
     TPV_PCT_BASE = 0.30        # 30% del baseline
@@ -703,8 +704,14 @@ def read_looker_sheet():
     agg = defaultdict(lambda: {
         'conv': 0,
         'pot_m0': 0, 'tpv_inc_m0': 0.0, 'vc_inc_m0': 0.0,
+        'tpv_inc_m0_qr': 0.0, 'vc_inc_m0_qr': 0.0,
+        'tpv_inc_m0_link': 0.0, 'vc_inc_m0_link': 0.0,
         'pot_m1': 0, 'tpv_inc_m1': 0.0, 'vc_inc_m1': 0.0,
+        'tpv_inc_m1_qr': 0.0, 'vc_inc_m1_qr': 0.0,
+        'tpv_inc_m1_link': 0.0, 'vc_inc_m1_link': 0.0,
         'pot_m2': 0, 'tpv_inc_m2': 0.0, 'vc_inc_m2': 0.0,
+        'tpv_inc_m2_qr': 0.0, 'vc_inc_m2_qr': 0.0,
+        'tpv_inc_m2_link': 0.0, 'vc_inc_m2_link': 0.0,
         'tl': '', 'name': '',
     })
 
@@ -733,7 +740,7 @@ def read_looker_sheet():
         m1_ok = _truthy(row[COL_M1_OK]) if len(row) > COL_M1_OK else False
         m2_ok = _truthy(row[COL_M2_OK]) if len(row) > COL_M2_OK else False
 
-        # Valores numéricos
+        # Valores numéricos — Total/POINT
         tpv_base = _parse_ars(row[COL_TPV_BASE_USE])
         tpv0     = _parse_ars(row[COL_TPV_M0]) if len(row) > COL_TPV_M0 else 0.0
         vc0      = _parse_ars(row[COL_VC_M0])  if len(row) > COL_VC_M0  else 0.0
@@ -741,6 +748,20 @@ def read_looker_sheet():
         vc1      = _parse_ars(row[COL_VC_M1])  if len(row) > COL_VC_M1  else 0.0
         tpv2     = _parse_ars(row[COL_TPV_M2]) if len(row) > COL_TPV_M2 else 0.0
         vc2      = _parse_ars(row[COL_VC_M2])  if len(row) > COL_VC_M2  else 0.0
+        # QR
+        tpv0_qr  = _parse_ars(row[COL_TPV_M0_QR])   if len(row) > COL_TPV_M0_QR  else 0.0
+        vc0_qr   = _parse_ars(row[COL_VC_M0_QR])    if len(row) > COL_VC_M0_QR   else 0.0
+        tpv1_qr  = _parse_ars(row[COL_TPV_M1_QR])   if len(row) > COL_TPV_M1_QR  else 0.0
+        vc1_qr   = _parse_ars(row[COL_VC_M1_QR])    if len(row) > COL_VC_M1_QR   else 0.0
+        tpv2_qr  = _parse_ars(row[COL_TPV_M2_QR])   if len(row) > COL_TPV_M2_QR  else 0.0
+        vc2_qr   = _parse_ars(row[COL_VC_M2_QR])    if len(row) > COL_VC_M2_QR   else 0.0
+        # Link de pago
+        tpv0_lnk = _parse_ars(row[COL_TPV_M0_LINK]) if len(row) > COL_TPV_M0_LINK else 0.0
+        vc0_lnk  = _parse_ars(row[COL_VC_M0_LINK])  if len(row) > COL_VC_M0_LINK  else 0.0
+        tpv1_lnk = _parse_ars(row[COL_TPV_M1_LINK]) if len(row) > COL_TPV_M1_LINK else 0.0
+        vc1_lnk  = _parse_ars(row[COL_VC_M1_LINK])  if len(row) > COL_VC_M1_LINK  else 0.0
+        tpv2_lnk = _parse_ars(row[COL_TPV_M2_LINK]) if len(row) > COL_TPV_M2_LINK else 0.0
+        vc2_lnk  = _parse_ars(row[COL_VC_M2_LINK])  if len(row) > COL_VC_M2_LINK  else 0.0
 
         # Clasificaciones
         pot_m0 = _is_potenciado(tpv0, tpv_base)
@@ -755,17 +776,29 @@ def read_looker_sheet():
         acc['conv'] += 1
 
         if pot_m0:
-            acc['pot_m0']     += 1
-            acc['tpv_inc_m0'] += tpv0
-            acc['vc_inc_m0']  += vc0
+            acc['pot_m0']          += 1
+            acc['tpv_inc_m0']      += tpv0
+            acc['vc_inc_m0']       += vc0
+            acc['tpv_inc_m0_qr']   += tpv0_qr
+            acc['vc_inc_m0_qr']    += vc0_qr
+            acc['tpv_inc_m0_link'] += tpv0_lnk
+            acc['vc_inc_m0_link']  += vc0_lnk
         if pot_m1:
-            acc['pot_m1']     += 1
-            acc['tpv_inc_m1'] += tpv1
-            acc['vc_inc_m1']  += vc1
+            acc['pot_m1']          += 1
+            acc['tpv_inc_m1']      += tpv1
+            acc['vc_inc_m1']       += vc1
+            acc['tpv_inc_m1_qr']   += tpv1_qr
+            acc['vc_inc_m1_qr']    += vc1_qr
+            acc['tpv_inc_m1_link'] += tpv1_lnk
+            acc['vc_inc_m1_link']  += vc1_lnk
         if pot_m2:
-            acc['pot_m2']     += 1
-            acc['tpv_inc_m2'] += tpv2
-            acc['vc_inc_m2']  += vc2
+            acc['pot_m2']          += 1
+            acc['tpv_inc_m2']      += tpv2
+            acc['vc_inc_m2']       += vc2
+            acc['tpv_inc_m2_qr']   += tpv2_qr
+            acc['vc_inc_m2_qr']    += vc2_qr
+            acc['tpv_inc_m2_link'] += tpv2_lnk
+            acc['vc_inc_m2_link']  += vc2_lnk
 
     if skipped:
         print(f"  ({skipped} filas ignoradas — sin asesor/mes/TL o incompletas)")
@@ -773,19 +806,31 @@ def read_looker_sheet():
     result = []
     for (asesor, cohort), acc in sorted(agg.items(), key=lambda x: (x[0][1], x[0][0])):
         result.append({
-            "cohort":     cohort,
-            "tl":         acc['tl'],
-            "name":       acc['name'],
-            "conv":       acc['conv'],
-            "pot_m0":     acc['pot_m0'],
-            "tpv_inc_m0": round(acc['tpv_inc_m0'], 2),
-            "vc_inc_m0":  round(acc['vc_inc_m0'],  2),
-            "pot_m1":     acc['pot_m1'],
-            "tpv_inc_m1": round(acc['tpv_inc_m1'], 2),
-            "vc_inc_m1":  round(acc['vc_inc_m1'],  2),
-            "pot_m2":     acc['pot_m2'],
-            "tpv_inc_m2": round(acc['tpv_inc_m2'], 2),
-            "vc_inc_m2":  round(acc['vc_inc_m2'],  2),
+            "cohort":          cohort,
+            "tl":              acc['tl'],
+            "name":            acc['name'],
+            "conv":            acc['conv'],
+            "pot_m0":          acc['pot_m0'],
+            "tpv_inc_m0":      round(acc['tpv_inc_m0'],      2),
+            "vc_inc_m0":       round(acc['vc_inc_m0'],       2),
+            "tpv_inc_m0_qr":   round(acc['tpv_inc_m0_qr'],   2),
+            "vc_inc_m0_qr":    round(acc['vc_inc_m0_qr'],    2),
+            "tpv_inc_m0_link": round(acc['tpv_inc_m0_link'], 2),
+            "vc_inc_m0_link":  round(acc['vc_inc_m0_link'],  2),
+            "pot_m1":          acc['pot_m1'],
+            "tpv_inc_m1":      round(acc['tpv_inc_m1'],      2),
+            "vc_inc_m1":       round(acc['vc_inc_m1'],       2),
+            "tpv_inc_m1_qr":   round(acc['tpv_inc_m1_qr'],   2),
+            "vc_inc_m1_qr":    round(acc['vc_inc_m1_qr'],    2),
+            "tpv_inc_m1_link": round(acc['tpv_inc_m1_link'], 2),
+            "vc_inc_m1_link":  round(acc['vc_inc_m1_link'],  2),
+            "pot_m2":          acc['pot_m2'],
+            "tpv_inc_m2":      round(acc['tpv_inc_m2'],      2),
+            "vc_inc_m2":       round(acc['vc_inc_m2'],       2),
+            "tpv_inc_m2_qr":   round(acc['tpv_inc_m2_qr'],   2),
+            "vc_inc_m2_qr":    round(acc['vc_inc_m2_qr'],    2),
+            "tpv_inc_m2_link": round(acc['tpv_inc_m2_link'], 2),
+            "vc_inc_m2_link":  round(acc['vc_inc_m2_link'],  2),
         })
 
     cohorts_found = sorted(set(r['cohort'] for r in result))
@@ -886,14 +931,25 @@ def read_portfolio_from_looker(n_meses=3):
 
     SHEET_ID     = '11xFxl_XYFIhLGmokYJM9HpBUu53uRoUhWNqdqfHVPs8'
     TAB          = 'LOOKERV2'
-    COL_CUST_ID  = 0
-    COL_MES      = 1
-    COL_ASESOR   = 2
-    COL_TPV_BASE = 8    # TPV M-1
-    COL_TPV_INC  = 20   # TPV incremental M0
-    COL_VC_INC   = 21   # VC incremental M0
-    TPV_MIN      = 2_000_000
-    TPV_PCT      = 0.30
+    COL_CUST_ID    = 0
+    COL_MES        = 1
+    COL_ASESOR     = 2
+    COL_TPV_BASE   = 8    # TPV M-1 (baseline)
+    # Total / POINT
+    COL_TPV_INC    = 20   # TPV incremental M0
+    COL_VC_INC     = 21   # VC incremental M0
+    # QR
+    COL_TPV_INC_QR  = 56
+    COL_VC_INC_QR   = 57
+    # Link de pago
+    COL_TPV_INC_LNK = 84
+    COL_VC_INC_LNK  = 85
+    # Flags / TL / clasificación
+    COL_M0_OK      = 103
+    COL_TL         = 109
+    COL_POT_FINAL  = 115  # POTENCIADO (clasificación M2 completa)
+    TPV_MIN        = 2_000_000
+    TPV_PCT        = 0.30
 
     # Calcular últimos n_meses cohorts desde MES_ACTUAL
     now = datetime.now()
@@ -967,19 +1023,36 @@ def read_portfolio_from_looker(n_meses=3):
             skipped += 1
             continue
 
-        tpv_base = _parse(row[col_base])
-        tpv_inc  = _parse(row[COL_TPV_INC]) if len(row) > COL_TPV_INC else 0.0
-        vc_inc   = _parse(row[COL_VC_INC])  if len(row) > COL_VC_INC  else 0.0
-        is_pot   = int(tpv_inc > TPV_MIN and tpv_inc > tpv_base * TPV_PCT)
+        tl = ASESOR_TL.get(asesor, '')
+        if not tl:
+            tl = row[COL_TL].strip().lower() if len(row) > COL_TL else ''
+
+        tpv_base  = _parse(row[col_base])
+        tpv_inc   = _parse(row[COL_TPV_INC])    if len(row) > COL_TPV_INC    else 0.0
+        vc_inc    = _parse(row[COL_VC_INC])     if len(row) > COL_VC_INC     else 0.0
+        tpv_qr    = _parse(row[COL_TPV_INC_QR]) if len(row) > COL_TPV_INC_QR else 0.0
+        vc_qr     = _parse(row[COL_VC_INC_QR])  if len(row) > COL_VC_INC_QR  else 0.0
+        tpv_lnk   = _parse(row[COL_TPV_INC_LNK])if len(row) > COL_TPV_INC_LNK else 0.0
+        vc_lnk    = _parse(row[COL_VC_INC_LNK]) if len(row) > COL_VC_INC_LNK  else 0.0
+        # Potenciado: regla TPV INC M0 > $2M y > 30% del baseline
+        is_pot_m0 = int(tpv_inc > TPV_MIN and tpv_inc > tpv_base * TPV_PCT)
+        # Potenciado final (clasificación M2, del sheet)
+        is_pot_final = int(len(row) > COL_POT_FINAL and row[COL_POT_FINAL].strip().upper() == 'POTENCIADO')
 
         result.append({
             'asesor':   asesor,
+            'tl':       tl,
             'mes':      int(mes_raw),
             'cust_id':  cust_id,
             'tpv_base': round(tpv_base, 2),
             'tpv_inc':  round(tpv_inc, 2),
             'vc_inc':   round(vc_inc, 2),
-            'pot':      is_pot,
+            'tpv_qr':   round(tpv_qr, 2),
+            'vc_qr':    round(vc_qr, 2),
+            'tpv_lnk':  round(tpv_lnk, 2),
+            'vc_lnk':   round(vc_lnk, 2),
+            'pot':      is_pot_m0,
+            'pot_final': is_pot_final,
         })
 
     print(f"  Portfolio: {len(result)} sellers en {len(cohorts)} cohorts ({skipped} omitidos)")
