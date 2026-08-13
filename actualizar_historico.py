@@ -788,26 +788,31 @@ def read_looker_sheet():
         acc['tl']   = tl
         acc['conv'] += 1
 
+        # Potenciado M0: TPV inc + VC (solo si cumple umbral)
         if pot_m0:
             acc['pot_m0']          += 1
             acc['tpv_inc_m0']      += tpv0
             acc['vc_inc_m0']       += vc0
-            acc['tpv_inc_m0_qr']   += tpv0_qr
-            acc['vc_inc_m0_qr']    += vc0_qr
-            acc['tpv_inc_m0_link'] += tpv0_lnk
-            acc['vc_inc_m0_link']  += vc0_lnk
         if pot_m1:
             acc['pot_m1']          += 1
             acc['tpv_inc_m1']      += tpv1
             acc['vc_inc_m1']       += vc1
-            acc['tpv_inc_m1_qr']   += tpv1_qr
-            acc['vc_inc_m1_qr']    += vc1_qr
-            acc['tpv_inc_m1_link'] += tpv1_lnk
-            acc['vc_inc_m1_link']  += vc1_lnk
         if pot_m2:
             acc['pot_m2']          += 1
             acc['tpv_inc_m2']      += tpv2
             acc['vc_inc_m2']       += vc2
+
+        # QR y LINK: acumular para TODOS los convertidos (no solo potenciados)
+        acc['tpv_inc_m0_qr']   += tpv0_qr
+        acc['vc_inc_m0_qr']    += vc0_qr
+        acc['tpv_inc_m0_link'] += tpv0_lnk
+        acc['vc_inc_m0_link']  += vc0_lnk
+        if m1_ok:
+            acc['tpv_inc_m1_qr']   += tpv1_qr
+            acc['vc_inc_m1_qr']    += vc1_qr
+            acc['tpv_inc_m1_link'] += tpv1_lnk
+            acc['vc_inc_m1_link']  += vc1_lnk
+        if m2_ok:
             acc['tpv_inc_m2_qr']   += tpv2_qr
             acc['vc_inc_m2_qr']    += vc2_qr
             acc['tpv_inc_m2_link'] += tpv2_lnk
