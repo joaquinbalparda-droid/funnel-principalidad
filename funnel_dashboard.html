@@ -456,6 +456,55 @@
 
     </div>
 
+    <!-- ═══ RESUMEN GESTIÓN + TOP/BOTTOM 10 — AL TOPE ═══ -->
+    <div id="gestion-resumen-card" style="margin-bottom:var(--gap)">
+
+      <!-- Resumen numérico del equipo -->
+      <div class="kpi-row" id="resumen-kpi-row" style="margin-bottom:var(--gap)"></div>
+
+      <!-- TOP 10 / BOTTOM 10 — Performance (Conv + Pot + TPV POINT) -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--gap);margin-bottom:var(--gap)">
+
+        <div class="table-card" style="margin-bottom:0;border-top:4px solid #16a34a">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <h3 style="margin:0;font-size:14px">&#127942; TOP 10 — Performance</h3>
+            <span style="font-size:11px;color:var(--muted)">Conv + Pot + TPV POINT</span>
+          </div>
+          <div id="top10-body"></div>
+        </div>
+
+        <div class="table-card" style="margin-bottom:0;border-top:4px solid #dc2626">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <h3 style="margin:0;font-size:14px">&#128680; BOTTOM 10 — Performance</h3>
+            <span style="font-size:11px;color:var(--muted)">Necesitan más atención</span>
+          </div>
+          <div id="bot10-body"></div>
+        </div>
+
+      </div>
+
+      <!-- TOP 10 / BOTTOM 10 — Contactabilidad -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--gap)">
+
+        <div class="table-card" style="margin-bottom:0;border-top:4px solid #0ea5e9">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <h3 style="margin:0;font-size:14px">&#128222; TOP 10 — Contactabilidad</h3>
+            <span style="font-size:11px;color:var(--muted)">% contactados / leads</span>
+          </div>
+          <div id="top10-cont-body"></div>
+        </div>
+
+        <div class="table-card" style="margin-bottom:0;border-top:4px solid #f97316">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <h3 style="margin:0;font-size:14px">&#128683; BOTTOM 10 — Contactabilidad</h3>
+            <span style="font-size:11px;color:var(--muted)">Menor % de contacto</span>
+          </div>
+          <div id="bot10-cont-body"></div>
+        </div>
+
+      </div>
+    </div>
+
     <div class="kpi-row" id="cohort-kpi-row"></div>
 
     <div class="kpi-row" id="vc-pot-strip" style="margin-top:-8px"></div>
@@ -2351,6 +2400,10 @@ function renderTpvSection(){
 
   var kpiRows=getCohortForKPI();     // para tarjetas KPI (mes seleccionado)
 
+  // SIEMPRE renderizar resumen + rankings (usan DATA del mes actual)
+  renderResumenGestion();
+  renderRankings();
+
   if(!allRows.length){
 
     // No cohort data → show current month table from TPV_DATA
@@ -2373,6 +2426,121 @@ function renderTpvSection(){
 
   renderCohortTable(allRows);
 
+}
+
+// ── RESUMEN GESTIÓN ───────────────────────────────────────────────────────────
+function renderResumenGestion(){
+  // Agrega DATA (campana=TOTAL) para el equipo completo filtrado por TL
+  var d=(DATA||[]).filter(function(r){
+    return r.campana==='TOTAL' && (tpvTL==='all'||r.tl===tpvTL) && (tpvAsesor==='all'||r.name===tpvAsesor);
+  });
+  var leads=0,cont=0,conv=0,pot=0,rech=0,neg=0,pend=0,tpvInc=0;
+  d.forEach(function(r){
+    leads+=r.leads||0; cont+=r.cont||0; conv+=r.conv||0;
+    pot+=r.pot||0; rech+=r.rech||0; neg+=r.neg||0; pend+=r.pend||0;
+    tpvInc+=r.tpv_inc_pot||0;
+  });
+  var pCont=leads?Math.round(cont/leads*100):0;
+  var pConv=leads?Math.round(conv/leads*100):0;
+  var el=document.getElementById('resumen-kpi-row');
+  if(!el)return;
+  function mk(lbl,cls,val,sub){return'<div class="kpi '+cls+'"><div class="kpi-label">'+lbl+'</div><div class="kpi-value">'+val+'</div>'+(sub?'<div class="kpi-sub">'+sub+'</div>':'')+'</div>';}
+  el.innerHTML=
+    mk('Leads asignados','leads',''+leads,'')+
+    mk('Contactados','cont',''+cont,pCont+'% del total')+
+    mk('Convertidos','conv',''+conv,pConv+'% del total')+
+    mk('Potenciados','conv',''+pot,conv?Math.round(pot/conv*100)+'% de conv':'')+
+    mk('Rechazados','rech',''+rech,leads?Math.round(rech/leads*100)+'%':'')+
+    mk('En negociación','neg',''+neg,'')+
+    mk('Pendientes','pend',''+pend,'')+
+    mk('TPV Inc POINT','tpv-btn',(tpvInc>0?'$'+fmtM(tpvInc):'-'),'potenciados');
+}
+
+// ── RANKINGS TOP 10 / BOTTOM 10 ───────────────────────────────────────────────
+function renderRankings(){
+  // Build per-asesor map from DATA (campana=TOTAL)
+  var d=(DATA||[]).filter(function(r){
+    return r.campana==='TOTAL' && (tpvTL==='all'||r.tl===tpvTL) && (tpvAsesor==='all'||r.name===tpvAsesor);
+  });
+  var map={};
+  d.forEach(function(r){
+    var k=r.name;
+    if(!map[k])map[k]={name:r.name,tl:r.tl,leads:0,cont:0,conv:0,pot:0,tpvInc:0};
+    map[k].leads+=r.leads||0; map[k].cont+=r.cont||0; map[k].conv+=r.conv||0;
+    map[k].pot+=r.pot||0; map[k].tpvInc+=r.tpv_inc_pot||0;
+  });
+  var asesores=Object.values(map).filter(function(r){return r.leads>0;});
+  if(!asesores.length){
+    ['top10-body','bot10-body','top10-cont-body','bot10-cont-body'].forEach(function(id){
+      var el=document.getElementById(id);
+      if(el)el.innerHTML='<p style="color:var(--muted);font-size:12px;padding:8px">Sin datos</p>';
+    });
+    return;
+  }
+
+  // Compute normalized score = 0.35*conv_n + 0.35*pot_n + 0.30*tpv_n
+  var maxConv=Math.max.apply(null,asesores.map(function(r){return r.conv;}))||1;
+  var maxPot =Math.max.apply(null,asesores.map(function(r){return r.pot;}))||1;
+  var maxTpv =Math.max.apply(null,asesores.map(function(r){return r.tpvInc;}))||1;
+  asesores.forEach(function(r){
+    r.score=0.35*(r.conv/maxConv)+0.35*(r.pot/maxPot)+0.30*(r.tpvInc/maxTpv);
+    r.contPct=r.leads?r.cont/r.leads:0;
+  });
+
+  // Sort for performance ranking
+  var byScore=asesores.slice().sort(function(a,b){return b.score-a.score;});
+  // Sort for contactability ranking
+  var byCont=asesores.slice().sort(function(a,b){return b.contPct-a.contPct;});
+
+  var top10=byScore.slice(0,10);
+  var bot10=byScore.slice(-10).reverse();  // worst first → then reverse so worst is last
+  // Reorder bot10 so worst is at top
+  bot10=byScore.slice(Math.max(0,byScore.length-10)).reverse();
+
+  var top10c=byCont.slice(0,10);
+  var bot10c=byCont.slice(Math.max(0,byCont.length-10)).reverse();
+
+  function rankRow(r,rank,mode,isTop){
+    var tlc=TL_COLORS[r.tl]||'#888';
+    var medals=['🥇','🥈','🥉'];
+    var medal=(isTop&&rank<=3)?medals[rank-1]:'';
+    var bg=isTop?(rank<=3?'#f0fdf4':''):(rank<=3?'#fff1f2':'');
+    var rankBadge=medal?medal:'<span style="font-size:11px;font-weight:700;color:var(--muted)">#'+rank+'</span>';
+    var h='<tr style="border-bottom:1px solid #f3f4f6;background:'+bg+'">';
+    h+='<td style="padding:5px 8px;text-align:center;width:36px">'+rankBadge+'</td>';
+    h+='<td style="padding:5px 8px"><span style="font-weight:700;font-size:11px;color:'+tlc+'">'+(TL_NAMES[r.tl]||r.tl)+'</span></td>';
+    h+='<td style="padding:5px 8px;font-weight:600;font-size:12px">'+r.name+'</td>';
+    if(mode==='perf'){
+      h+='<td style="padding:5px 8px;text-align:center;font-size:12px">'+r.conv+'</td>';
+      h+='<td style="padding:5px 8px;text-align:center;font-size:12px">'+(r.pot>0?'<span class="pill high">'+r.pot+'</span>':'–')+'</td>';
+      h+='<td style="padding:5px 8px;text-align:right;font-size:12px;font-weight:700;color:#8b5cf6">'+(r.tpvInc>0?'$'+fmtM(r.tpvInc):'–')+'</td>';
+    } else {
+      h+='<td style="padding:5px 8px;text-align:center;font-size:12px">'+r.cont+'/'+r.leads+'</td>';
+      var pct=Math.round(r.contPct*100);
+      var col=pct>=70?'#16a34a':pct>=50?'#d97706':'#dc2626';
+      h+='<td style="padding:5px 8px;text-align:center;font-weight:700;color:'+col+'">'+pct+'%</td>';
+    }
+    h+='</tr>';
+    return h;
+  }
+
+  function buildTable(rows,mode,isTop){
+    var head=mode==='perf'
+      ?'<tr style="background:#f3f4f6"><th style="padding:5px 8px;text-align:center">#</th><th style="padding:5px 8px">TL</th><th style="padding:5px 8px;text-align:left">Asesor</th><th style="padding:5px 8px">Conv</th><th style="padding:5px 8px">Pot</th><th style="padding:5px 8px">TPV Inc</th></tr>'
+      :'<tr style="background:#f3f4f6"><th style="padding:5px 8px;text-align:center">#</th><th style="padding:5px 8px">TL</th><th style="padding:5px 8px;text-align:left">Asesor</th><th style="padding:5px 8px">Cont/Leads</th><th style="padding:5px 8px">%</th></tr>';
+    var h='<table style="width:100%;border-collapse:collapse;font-size:12px"><thead>'+head+'</thead><tbody>';
+    rows.forEach(function(r,i){h+=rankRow(r,i+1,mode,isTop);});
+    return h+'</tbody></table>';
+  }
+
+  var top10el=document.getElementById('top10-body');
+  var bot10el=document.getElementById('bot10-body');
+  var top10cel=document.getElementById('top10-cont-body');
+  var bot10cel=document.getElementById('bot10-cont-body');
+  if(top10el)top10el.innerHTML=buildTable(top10,'perf',true);
+  if(bot10el)bot10el.innerHTML=buildTable(bot10,'perf',false);
+  if(top10cel)top10cel.innerHTML=buildTable(top10c,'cont',true);
+  if(bot10cel)bot10cel.innerHTML=buildTable(bot10c,'cont',false);
 }
 
 
