@@ -23,8 +23,11 @@ if sys.stderr.encoding and sys.stderr.encoding.lower() not in ('utf-8', 'utf8'):
 # ── CONFIGURACIÓN ─────────────────────────────────────────────
 import os
 
-# GitHub token: env var tiene prioridad (GitHub Actions), fallback al hardcodeado (local)
-GITHUB_TOKEN  = os.environ.get("PERSONAL_GITHUB_TOKEN", "")
+# GitHub token: SIEMPRE desde env var (GH Actions secret o export local). No hardcodear tokens en el código.
+GITHUB_TOKEN  = os.environ.get("PERSONAL_GITHUB_TOKEN")
+if not GITHUB_TOKEN:
+    print("  [WARN] PERSONAL_GITHUB_TOKEN no seteado en el entorno — el push a GitHub va a fallar.")
+    print("         Local: export PERSONAL_GITHUB_TOKEN=ghp_xxx  |  GH Actions: ya viene del secret.")
 GITHUB_REPO   = "joaquinbalparda-droid/funnel-principalidad"
 GITHUB_FILE   = "funnel_dashboard.html"
 GITHUB_BRANCH = "main"
@@ -295,9 +298,19 @@ def run_bigquery(sql):
             err_str = str(e)
             is_quota = 'quotaExceeded' in err_str or 'Quota exceeded' in err_str or '403' in err_str
             is_not_found = '404' in err_str or 'Not found' in err_str or 'notFound' in err_str
-            if is_quota and attempt < MAX_RETRIES - 1:
+            # Errores transitorios de fuentes externas (Sheets sobrecargado, "Resources exceeded", etc.)
+            is_transient = (
+                'Resources exceeded' in err_str
+                or 'overloaded' in err_str.lower()
+                or 'Sheets service' in err_str
+                or '503' in err_str
+                or 'backendError' in err_str
+                or 'rateLimitExceeded' in err_str
+            )
+            if (is_quota or is_transient) and attempt < MAX_RETRIES - 1:
                 wait = RETRY_DELAYS[attempt]
-                print(f"  Quota exceeded — esperando {wait}s antes de reintentar (intento {attempt+2}/{MAX_RETRIES})...")
+                motivo = "Quota exceeded" if is_quota else "Error transitorio (fuente externa sobrecargada)"
+                print(f"  {motivo} — esperando {wait}s antes de reintentar (intento {attempt+2}/{MAX_RETRIES})...")
                 time.sleep(wait)
                 continue
             if is_not_found:
@@ -782,7 +795,7 @@ def update_and_push(data, tpv_data=None):
         return html_new
     else:
         print(f"  [ERROR] Push GitHub: {r.status_code} - {r.text[:200]}")
-        return html_new  # igual retorna el contenido local
+        return None  # push falló: el HTML local se guardó, pero GitHub NO se actualizó
 
 # ── MAIN ──────────────────────────────────────────────────────
 
@@ -828,10 +841,14 @@ def main():
     if ok:
         print(f"   [OK] Publicado en: https://joaquinbalparda-droid.github.io/funnel-principalidad/funnel_dashboard.html")
     else:
-        print("   [ERROR] Error al subir a GitHub")
+        print("   [ERROR] Error al subir a GitHub — el workflow debe marcarse como FALLIDO")
 
     print("─" * 50)
-    print("[OK] Listo!\n")
+    if ok:
+        print("[OK] Listo!\n")
+    else:
+        print("[FAIL] El push a GitHub falló — revisar token/secret PERSONAL_GITHUB_TOKEN.\n")
+        sys.exit(1)
 
 if __name__ == '__main__':
     main()
